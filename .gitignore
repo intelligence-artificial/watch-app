@@ -1,0 +1,30 @@
+# Build outputs
+*.apk
+*.aab
+*.dex
+*.class
+app/build/
+build/
+.gradle/
+
+# Local properties (contains SDK paths)
+local.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Gradle wrapper JAR (downloaded at build time)
+gradle/wrapper/gradle-wrapper.jar
+
+# Recordings (sensitive voice data)
+recordings/
+*.m4a
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
