@@ -34,7 +34,7 @@ echo.
 if not exist "gradle\wrapper\gradle-wrapper.jar" (
     echo [INFO] Downloading Gradle wrapper JAR...
     if not exist "gradle\wrapper" mkdir gradle\wrapper
-    curl -L -o gradle\wrapper\gradle-wrapper.jar https://github.com/gradle/gradle/raw/v8.2.0/gradle/wrapper/gradle-wrapper.jar
+    curl.exe -L -o gradle\wrapper\gradle-wrapper.jar https://github.com/gradle/gradle/raw/v8.2.0/gradle/wrapper/gradle-wrapper.jar
     if not exist "gradle\wrapper\gradle-wrapper.jar" (
         echo [ERROR] Failed to download gradle-wrapper.jar
         exit /b 1
@@ -42,7 +42,7 @@ if not exist "gradle\wrapper\gradle-wrapper.jar" (
     echo [INFO] Gradle wrapper downloaded successfully
 )
 
-echo [INFO] Building debug APK...
+echo [INFO] Building debug APKs (wear + mobile)...
 echo.
 
 :: Run Gradle build
@@ -54,8 +54,8 @@ if %errorlevel%==0 (
     echo :                   BUILD SUCCESSFUL                          :
     echo +============================================================+
     echo.
-    echo   APK Location:
-    echo   app\build\outputs\apk\debug\app-debug.apk
+    echo   Watch APK: wear\build\outputs\apk\debug\wear-debug.apk
+    echo   Phone APK: mobile\build\outputs\apk\debug\mobile-debug.apk
     echo.
 ) else (
     echo.

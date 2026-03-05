@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 
 echo.
 echo +============================================================+
-echo :          Watch Voice Recorder - Install                     :
+echo :          Watch Voice Recorder - Install All                 :
 echo +============================================================+
 echo.
 
@@ -12,65 +12,52 @@ set JAVA_HOME=%LOCALAPPDATA%\openjdk-17\jdk-17.0.2
 set ANDROID_HOME=%LOCALAPPDATA%\Android\Sdk
 set PATH=%JAVA_HOME%\bin;%ANDROID_HOME%\platform-tools;%PATH%
 
-:: Set APK path
-set APK_PATH=app\build\outputs\apk\debug\app-debug.apk
-
-:: Check if APK exists
-if not exist "%APK_PATH%" (
-    echo [ERROR] APK not found at %APK_PATH%
-    echo         Please run build.bat first.
-    exit /b 1
-)
-
 :: Check for ADB
 if not exist "%ANDROID_HOME%\platform-tools\adb.exe" (
     echo [ERROR] ADB not found. Run setup_sdk.bat first.
     exit /b 1
 )
 
-echo [INFO] Checking for connected devices...
-echo.
-
-:: List devices
+echo [INFO] Connected devices:
 adb devices -l
+echo.
 
-:: Count connected devices
-for /f "tokens=*" %%a in ('adb devices ^| find /c "device"') do set DEVICE_COUNT=%%a
-set /a DEVICE_COUNT=DEVICE_COUNT-1
-
-if %DEVICE_COUNT% lss 1 (
-    echo.
-    echo [ERROR] No devices connected.
-    echo.
-    echo   To connect your Pixel Watch 2:
-    echo   1. Enable Developer Options on the watch
-    echo   2. Enable ADB debugging
-    echo   3. Connect via USB or run wireless_setup.bat
-    echo.
-    exit /b 1
+:: Install watch APK
+set WEAR_APK=wear\build\outputs\apk\debug\wear-debug.apk
+if exist "%WEAR_APK%" (
+    echo [INFO] Installing watch APK...
+    adb install -r "%WEAR_APK%"
+    if %errorlevel%==0 (
+        echo [SUCCESS] Watch APK installed!
+        adb shell am start -n com.watchvoice.recorder/.MainActivity
+    ) else (
+        echo [WARNING] Watch APK install failed - watch may not be connected
+    )
+) else (
+    echo [SKIP] Watch APK not found. Run build.bat first.
 )
 
 echo.
-echo [INFO] Installing APK...
-adb install -r "%APK_PATH%"
 
-if %errorlevel%==0 (
-    echo.
-    echo [SUCCESS] APK installed successfully!
-    echo.
-    echo [INFO] Launching app...
-    adb shell am start -n com.watchvoice.recorder/.MainActivity
-
-    echo.
-    echo +============================================================+
-    echo :             App launched on watch!                           :
-    echo +============================================================+
-    echo.
+:: Install phone APK
+set MOBILE_APK=mobile\build\outputs\apk\debug\mobile-debug.apk
+if exist "%MOBILE_APK%" (
+    echo [INFO] Installing phone APK...
+    adb install -r "%MOBILE_APK%"
+    if %errorlevel%==0 (
+        echo [SUCCESS] Phone APK installed!
+        adb shell am start -n com.watchvoice.recorder/.MainActivity
+    ) else (
+        echo [WARNING] Phone APK install failed - phone may not be connected
+    )
 ) else (
-    echo.
-    echo [ERROR] Installation failed.
-    echo         Make sure ADB debugging is enabled on your watch.
-    exit /b 1
+    echo [SKIP] Phone APK not found. Run build.bat first.
 )
+
+echo.
+echo +============================================================+
+echo :                   Install Complete                           :
+echo +============================================================+
+echo.
 
 endlocal

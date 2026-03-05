@@ -25,10 +25,12 @@ import androidx.core.content.ContextCompat
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 // Colors
 private val RecordRed = Color(0xFFE53935)
 private val RecordingGreen = Color(0xFF43A047)
+private val SyncBlue = Color(0xFF42A5F5)
 private val DarkBg = Color(0xFF121212)
 private val TextWhite = Color(0xFFEEEEEE)
 private val TextGray = Color(0xFF888888)
@@ -36,11 +38,14 @@ private val TextGray = Color(0xFF888888)
 @Composable
 fun RecordScreen(
     onNavigateToRecordings: () -> Unit,
-    recorderService: AudioRecorderService
+    recorderService: AudioRecorderService,
+    dataLayerSender: DataLayerSender
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var isRecording by remember { mutableStateOf(false) }
     var elapsedTime by remember { mutableLongStateOf(0L) }
+    var syncStatus by remember { mutableStateOf<String?>(null) }
     var hasPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
@@ -70,6 +75,14 @@ fun RecordScreen(
                 delay(1000)
                 elapsedTime += 1
             }
+        }
+    }
+
+    // Auto-clear sync status after 3 seconds
+    LaunchedEffect(syncStatus) {
+        if (syncStatus != null && syncStatus != "Sending…") {
+            delay(3000)
+            syncStatus = null
         }
     }
 
@@ -123,12 +136,26 @@ fun RecordScreen(
                         val vibrator = context.getSystemService(Vibrator::class.java)
                         if (isRecording) {
                             // Stop recording
-                            recorderService.stopRecording()
+                            val info = recorderService.stopRecording()
                             isRecording = false
                             recordingCount++
                             vibrator?.vibrate(
                                 VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE)
                             )
+
+                            // Auto-send to phone
+                            if (info != null) {
+                                syncStatus = "Sending…"
+                                scope.launch {
+                                    val status = dataLayerSender.sendRecording(info.file)
+                                    syncStatus = when (status) {
+                                        DataLayerSender.SendStatus.SENT -> "Sent ✓"
+                                        DataLayerSender.SendStatus.NO_PHONE -> "Phone not found"
+                                        DataLayerSender.SendStatus.ERROR -> "Send failed"
+                                        DataLayerSender.SendStatus.SENDING -> "Sending…"
+                                    }
+                                }
+                            }
                         } else {
                             // Start recording
                             val file = recorderService.startRecording()
@@ -160,7 +187,22 @@ fun RecordScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Sync status
+            if (syncStatus != null) {
+                Text(
+                    text = syncStatus!!,
+                    color = when {
+                        syncStatus == "Sent ✓" -> RecordingGreen
+                        syncStatus == "Sending…" -> SyncBlue
+                        else -> RecordRed
+                    },
+                    fontSize = 11.sp,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
 
             // Recordings button
             if (!isRecording && recordingCount > 0) {

@@ -1,11 +1,17 @@
+# ============================================
+# Watch Voice Recorder - .gitignore
+# ============================================
+
 # Build outputs
 *.apk
 *.aab
 *.dex
 *.class
-app/build/
+wear/build/
+mobile/build/
 build/
 .gradle/
+.cxx/
 
 # Local properties (contains SDK paths)
 local.properties
@@ -21,10 +27,44 @@ gradle/wrapper/gradle-wrapper.jar
 # Recordings (sensitive voice data)
 recordings/
 *.m4a
+*.wav
+
+# ML Models (too large for git, bundled at build time)
+mobile/src/main/assets/model/
+*.bin
+*.ggml
+
+# whisper.cpp source clone (cloned at build time if needed)
+mobile/whisper.cpp/
+
+# JNI build outputs
+mobile/src/main/jni/
+
+# Native build outputs
+*.so
+*.o
 
 # OS files
 Thumbs.db
 .DS_Store
+desktop.ini
 
 # Logs
 *.log
+
+# Temp/debug files
+debug_phone.bat
+debug_watch.bat
+
+# Environment files (if any)
+.env
+.env.*
+
+# Secrets
+*.keystore
+*.jks
+*.pem
+*.key
+
+# Vosk temp extraction
+vosk-extract/

@@ -63,6 +63,10 @@ dependencies {
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+
+    // Wear Data Layer
+    implementation("com.google.android.gms:play-services-wearable:18.1.0")
 
     // Debug
     debugImplementation("androidx.compose.ui:ui-tooling:1.5.4")

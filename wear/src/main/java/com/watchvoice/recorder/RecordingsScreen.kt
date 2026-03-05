@@ -44,12 +44,20 @@ fun RecordingsScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "No recordings yet",
-                    color = TextGray,
-                    fontSize = 14.sp,
-                    textAlign = TextAlign.Center
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "No recordings yet",
+                        color = TextGray,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    CompactChip(
+                        onClick = onBack,
+                        label = { Text("← Record", fontSize = 11.sp, color = AccentBlue) },
+                        colors = ChipDefaults.chipColors(backgroundColor = CardBg)
+                    )
+                }
             }
         } else {
             ScalingLazyColumn(
@@ -62,6 +70,14 @@ fun RecordingsScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
+                item {
+                    CompactChip(
+                        onClick = onBack,
+                        label = { Text("← Record", fontSize = 11.sp, color = AccentBlue) },
+                        colors = ChipDefaults.chipColors(backgroundColor = CardBg)
+                    )
+                }
+
                 item {
                     Text(
                         text = "Recordings",
@@ -119,29 +135,46 @@ private fun RecordingItem(
 
     val sizeKb = file.length() / 1024
 
-    Chip(
-        onClick = onPlay,
-        label = {
-            Text(
-                text = dateStr,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                fontSize = 12.sp
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Chip(
+            onClick = onPlay,
+            label = {
+                Text(
+                    text = dateStr,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = 12.sp
+                )
+            },
+            secondaryLabel = {
+                Text(
+                    text = "${sizeKb}KB" + if (isPlaying) " ▶ Playing" else "",
+                    fontSize = 10.sp,
+                    color = if (isPlaying) AccentBlue else TextGray
+                )
+            },
+            colors = ChipDefaults.chipColors(
+                backgroundColor = CardBg,
+                contentColor = TextWhite
+            ),
+            modifier = Modifier.weight(1f)
+        )
+
+        // Delete button
+        CompactChip(
+            onClick = onDelete,
+            label = {
+                Text("✕", fontSize = 12.sp, color = DeleteRed)
+            },
+            colors = ChipDefaults.chipColors(
+                backgroundColor = CardBg
             )
-        },
-        secondaryLabel = {
-            Text(
-                text = "${sizeKb}KB" + if (isPlaying) " ▶ Playing" else "",
-                fontSize = 10.sp,
-                color = if (isPlaying) AccentBlue else TextGray
-            )
-        },
-        colors = ChipDefaults.chipColors(
-            backgroundColor = CardBg,
-            contentColor = TextWhite
-        ),
-        modifier = Modifier.fillMaxWidth()
-    )
+        )
+    }
 }
 
 private fun loadRecordings(dir: File): List<File> {

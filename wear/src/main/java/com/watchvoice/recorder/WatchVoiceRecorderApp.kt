@@ -14,6 +14,7 @@ fun WatchVoiceRecorderApp() {
     val recordingsDir = remember { context.filesDir }
     val recorderService = remember { AudioRecorderService(context, recordingsDir) }
     val playerService = remember { AudioPlayerService() }
+    val dataLayerSender = remember { DataLayerSender(context) }
     val navController = rememberSwipeDismissableNavController()
 
     MaterialTheme {
@@ -26,7 +27,8 @@ fun WatchVoiceRecorderApp() {
                     onNavigateToRecordings = {
                         navController.navigate("recordings")
                     },
-                    recorderService = recorderService
+                    recorderService = recorderService,
+                    dataLayerSender = dataLayerSender
                 )
             }
 
