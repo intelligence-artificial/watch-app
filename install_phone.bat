@@ -23,14 +23,27 @@ echo [INFO] Connected devices:
 adb devices -l
 echo.
 
+:: Find a non-watch device serial (phone)
+set "PHONE_SERIAL="
+for /f "tokens=1,*" %%a in ('adb devices -l ^| findstr /v "Watch watch eos" ^| findstr "device product:"') do (
+    set "PHONE_SERIAL=%%a"
+)
+
+if "!PHONE_SERIAL!"=="" (
+    echo [ERROR] No phone device found. Only watch connected?
+    echo         Connect your phone via USB or wireless ADB.
+    exit /b 1
+)
+
+echo [INFO] Using phone: !PHONE_SERIAL!
 echo [INFO] Installing phone APK...
-adb install -r "%MOBILE_APK%"
+adb -s !PHONE_SERIAL! install -r "%MOBILE_APK%"
 
 if %errorlevel%==0 (
     echo.
     echo [SUCCESS] Phone APK installed!
     echo [INFO] Launching app...
-    adb shell am start -n com.watchvoice.recorder/.MainActivity
+    adb -s !PHONE_SERIAL! shell am start -n com.watchvoice.recorder/.MainActivity
     echo.
 ) else (
     echo.

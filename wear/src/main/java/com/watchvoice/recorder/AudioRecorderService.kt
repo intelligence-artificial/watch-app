@@ -17,6 +17,9 @@ class AudioRecorderService(private val context: Context, private val outputDir: 
 
     val isRecording: Boolean get() = recorder != null
 
+    /** Returns current max amplitude (0–32767). Resets on each call. */
+    fun getAmplitude(): Int = try { recorder?.maxAmplitude ?: 0 } catch (_: Exception) { 0 }
+
     fun startRecording(): File? {
         if (isRecording) return null
 

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Art Faces</string>
+    <string name="moire_face_name">Moiré</string>
+    <string name="void_mesh_face_name">Void Mesh</string>
+</resources>

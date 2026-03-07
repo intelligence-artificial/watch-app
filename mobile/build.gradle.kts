@@ -19,6 +19,12 @@ android {
         compose = true
     }
 
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.8"
     }

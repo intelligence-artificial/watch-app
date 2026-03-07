@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "WatchVoiceRecorder"
-include(":wear", ":mobile")
+include(":wear", ":mobile", ":watch_faces")

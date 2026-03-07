@@ -25,6 +25,7 @@ class TranscriptionService(private val context: Context) {
         private const val TAG = "TranscriptionService"
         private const val SAMPLE_RATE = 16000f
         private const val MODEL_DIR = "vosk-model"
+        private const val MODEL_VERSION = "en-us-0.22-lgraph" // bump when swapping models
         private var model: Model? = null
         private val modelLock = Any()
     }
@@ -35,12 +36,21 @@ class TranscriptionService(private val context: Context) {
 
             try {
                 val modelDir = File(context.filesDir, MODEL_DIR)
-                if (!modelDir.exists()) {
-                    Log.d(TAG, "Extracting Vosk model from assets...")
+                val versionFile = File(modelDir, ".model_version")
+
+                // Re-extract if model dir missing or version changed
+                val needsExtract = !modelDir.exists() ||
+                    !versionFile.exists() ||
+                    versionFile.readText().trim() != MODEL_VERSION
+
+                if (needsExtract) {
+                    Log.d(TAG, "Extracting Vosk model ($MODEL_VERSION) from assets...")
+                    if (modelDir.exists()) modelDir.deleteRecursively()
                     extractModelFromAssets(modelDir)
+                    versionFile.writeText(MODEL_VERSION)
                 }
 
-                Log.d(TAG, "Loading Vosk model...")
+                Log.d(TAG, "Loading Vosk model ($MODEL_VERSION)...")
                 model = Model(modelDir.absolutePath)
                 Log.d(TAG, "Vosk model loaded")
                 true
