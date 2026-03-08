@@ -46,4 +46,8 @@ dependencies {
 
     // Google Play Services (Wearable)
     implementation("com.google.android.gms:play-services-wearable:18.1.0")
+
+    // Health Services (heart rate, steps)
+    implementation("androidx.health:health-services-client:1.1.0-alpha05")
+    implementation("com.google.guava:guava:32.1.3-android")
 }
