@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Eye outline (almond shape) -->
+    <path android:fillColor="#FFFFFF" android:strokeColor="#FFFFFF" android:strokeWidth="2" android:pathData="M54,38 C40,38 28,50 24,54 C28,58 40,70 54,70 C68,70 80,58 84,54 C80,50 68,38 54,38 Z" />
+    <!-- Iris circle -->
+    <path android:fillColor="#333333" android:pathData="M54,54 m-12,0 a12,12 0,1 1,24 0 a12,12 0,1 1,-24 0" />
+    <!-- Pupil -->
+    <path android:fillColor="#000000" android:pathData="M54,54 m-6,0 a6,6 0,1 1,12 0 a6,6 0,1 1,-12 0" />
+    <!-- Highlight -->
+    <path android:fillColor="#FFFFFF" android:pathData="M50,49 m-2.5,0 a2.5,2.5 0,1 1,5 0 a2.5,2.5 0,1 1,-5 0" />
+</vector>

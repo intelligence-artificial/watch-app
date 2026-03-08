@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Watch Face Format (WFF) - Tamagotchi -->
+<WatchFace width="450" height="450">
+
+    <UserConfigurations>
+        <!-- Color Options -->
+        <ListConfiguration id="PET_COLOR" displayName="Pet Color" defaultValue="green">
+            <ListOption id="green" displayName="Neon Green" />
+            <ListOption id="blue" displayName="Neon Blue" />
+            <ListOption id="pink" displayName="Neon Pink" />
+            <ListOption id="yellow" displayName="Neon Yellow" />
+        </ListConfiguration>
+
+        <!-- Complication options that the user can pick -->
+        <ComplicationConfiguration id="COMP_TOP_LEFT" />
+        <ComplicationConfiguration id="COMP_TOP_RIGHT" />
+        <ComplicationConfiguration id="COMP_BOTTOM_LEFT" />
+        <ComplicationConfiguration id="COMP_BOTTOM_RIGHT" />
+    </UserConfigurations>
+
+    <Scene backgroundColor="#020206">
+        
+        <!-- ========================================== -->
+        <!--  BATTERY SAVER MODE (< 15% BATTERY)       -->
+        <!-- ========================================== -->
+        <!-- When battery is very low, we hide all the heavy
+             graphics (pet, gauges) and only show a basic 
+             monochrome digital clock to save power. -->
+        <Condition>
+            <Expression>[BATTERY_PERCENT] le 15</Expression>
+            
+            <!-- FALLBACK UI (BATTERY <= 15%) -->
+            <PartText x="225" y="225" width="200" height="80">
+                <Text align="CENTER">
+                    <Font family="SYNC-TO-DEVICE" size="64" color="#FFFFFF" />
+                    <!-- e.g. "10:08" -->
+                    <Template>%sh:%02d
+                        <Parameter expression="[HOUR_1_12]" />
+                        <Parameter expression="[MINUTE]" />
+                    </Template>
+                </Text>
+            </PartText>
+            
+            <PartText x="225" y="275" width="200" height="40">
+                <Text align="CENTER">
+                    <Font family="SYNC-TO-DEVICE" size="24" color="#AAAAAA" />
+                    <Template>BATTERY LOW: %d%%
+                        <Parameter expression="[BATTERY_PERCENT]" />
+                    </Template>
+                </Text>
+            </PartText>
+            
+            <!-- DEFAULT UI (BATTERY > 15%) -->
+            <Default>
+                <!-- ========================================== -->
+                <!--  BACKGROUND & GAUGES                      -->
+                <!-- ========================================== -->
+
+                <!-- Top Arc: Battery Level -->
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <!-- Background Arc -->
+                    <Arc centerX="225" centerY="225" width="410" height="410" 
+                         startAngle="-135" endAngle="-45" thickness="6">
+                        <Stroke color="#19FFFFFF"/>
+                    </Arc>
+                    <!-- Foreground Arc (Fills up based on [BATTERY_PERCENT]) -->
+                    <Arc centerX="225" centerY="225" width="410" height="410" 
+                         startAngle="-135" endAngle="-135 + ([BATTERY_PERCENT] * 0.9)" thickness="6">
+                         <!-- Neon green if >30%, Red if <30% -->
+                         <Condition>
+                            <Expression>[BATTERY_PERCENT] le 30</Expression>
+                            <Stroke color="#ff4646"/> <!-- Neon Red -->
+                            <Default>
+                                <Stroke color="#50ff78"/> <!-- Neon Green -->
+                            </Default>
+                         </Condition>
+                    </Arc>
+                </PartDraw>
+
+                <!-- Bottom Arc: Daily Steps Progress -->
+                <!-- Assuming 10k goal. WFF syntax for calculating sweep: ([STEP_COUNT] / 10000) * 90 -->
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Arc centerX="225" centerY="225" width="410" height="410" 
+                         startAngle="45" endAngle="135" thickness="6">
+                        <Stroke color="#19FFFFFF"/>
+                    </Arc>
+                    <Arc centerX="225" centerY="225" width="410" height="410" 
+                         startAngle="45" endAngle="45 + (([STEP_COUNT] / 10000) * 90)" thickness="6"
+                         direction="CLOCKWISE">
+                        <Stroke color="#50e6ff"/> <!-- Neon Cyan -->
+                    </Arc>
+                </PartDraw>
+
+                <!-- Second Dots (Ambient Mode: Hidden) -->
+                <!-- We simulate the 60 dots using a sweeping sweep-gradient or tick marks, 
+                     but for simplicity in XML, we just use an arc that tracks seconds. -->
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Arc centerX="225" centerY="225" width="360" height="360"
+                         startAngle="-90" endAngle="-90 + [SECOND] * 6" thickness="4">
+                         <Stroke color="#3050ff78"/>
+                    </Arc>
+                </PartDraw>
+
+
+                <!-- ========================================== -->
+                <!--  THE TAMAGOTCHI PET (CENTER HERO)         -->
+                <!-- ========================================== -->
+                
+                <!-- Night time (Sleeping) OR AOD ambient mode -->
+                <Condition>
+                    <Expression>[HOUR_0_23] ge 23 or [HOUR_0_23] le 5</Expression>
+                    
+                    <!-- SLEEPING -->
+                    <PartImage x="153" y="165" width="144" height="144">
+                        <Variant mode="ambient" target="image" value="pet_sleep_aod" />
+                        <Image resource="pet_sleep_green" />
+                        <Variant configuration="PET_COLOR" optionId="blue" target="image" value="pet_sleep_blue" />
+                        <Variant configuration="PET_COLOR" optionId="pink" target="image" value="pet_sleep_pink" />
+                        <Variant configuration="PET_COLOR" optionId="yellow" target="image" value="pet_sleep_yellow" />
+                    </PartImage>
+
+                    <Default>
+                        <!-- DAYTIME -->
+                        <!-- If we are in AOD, we show a static 1-bit wireframe outline -->
+                        <PartImage x="153" y="165" width="144" height="144">
+                            <Variant mode="ambient" target="alpha" value="255" />
+                            <Variant mode="ambient" target="image" value="pet_idle_aod" />
+                            <Variant mode="interactive" target="alpha" value="0" />
+                            <Image resource="pet_idle_aod" />
+                        </PartImage>
+
+                        <!-- If interactive, show the animated WebP or <PartAnimatedImage> sprite -->
+                        <!-- WFF supports `<PartAnimatedImage>` but for custom logic we can also just
+                             cycle through two images using modulo math on [SECOND] -->
+                        <Group x="153" y="165" width="144" height="144">
+                            <Variant mode="ambient" target="alpha" value="0" />
+                            
+                            <!-- Bouncing logic: offset Y slightly based on second -->
+                            <Transform target="y" value="sin([SECOND] * 3) * 3" />
+                            
+                            <Condition>
+                                <!-- Idle Animation: swap between idle_1 and idle_2 every second -->
+                                <Expression>([SECOND] % 2) eq 0</Expression>
+                                <PartImage x="0" y="0" width="144" height="144">
+                                    <Image resource="pet_idle_1_green" />
+                                    <Variant configuration="PET_COLOR" optionId="blue" target="image" value="pet_idle_1_blue" />
+                                    <Variant configuration="PET_COLOR" optionId="pink" target="image" value="pet_idle_1_pink" />
+                                    <Variant configuration="PET_COLOR" optionId="yellow" target="image" value="pet_idle_1_yellow" />
+                                </PartImage>
+                                <Default>
+                                    <PartImage x="0" y="0" width="144" height="144">
+                                        <Image resource="pet_idle_2_green" />
+                                        <Variant configuration="PET_COLOR" optionId="blue" target="image" value="pet_idle_2_blue" />
+                                        <Variant configuration="PET_COLOR" optionId="pink" target="image" value="pet_idle_2_pink" />
+                                        <Variant configuration="PET_COLOR" optionId="yellow" target="image" value="pet_idle_2_yellow" />
+                                    </PartImage>
+                                </Default>
+                            </Condition>
+                        </Group>
+
+                    </Default>
+                </Condition>
+
+
+                <!-- ========================================== -->
+                <!--  DIGITAL CLOCK (TOP CENTER)               -->
+                <!-- ========================================== -->
+                <!-- Time Glow -->
+                <PartText x="225" y="100" width="200" height="60">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Text align="CENTER">
+                        <Font family="SYNC-TO-DEVICE" size="50" color="#4050ff78" weight="BOLD" />
+                        <Template>%sh:%02d
+                            <Parameter expression="[HOUR_1_12]" />
+                            <Parameter expression="[MINUTE]" />
+                        </Template>
+                    </Text>
+                </PartText>
+                <!-- Time Main (Visible in Ambient too) -->
+                <PartText x="225" y="100" width="200" height="60">
+                    <Text align="CENTER">
+                        <Font family="SYNC-TO-DEVICE" size="50" color="#50ff78" weight="BOLD" />
+                        <Variant mode="ambient" target="color" value="#AAAAAA" />
+                        <Template>%sh:%02d
+                            <Parameter expression="[HOUR_1_12]" />
+                            <Parameter expression="[MINUTE]" />
+                        </Template>
+                    </Text>
+                </PartText>
+
+                <!-- ========================================== -->
+                <!--  COMPLICATION SLOTS (FOUR QUADRANTS)      -->
+                <!-- ========================================== -->
+                
+                <!-- TOP LEFT -->
+                <ComplicationSlot x="50" y="50" width="100" height="100" slotId="COMP_TOP_LEFT" 
+                                  supportedTypes="SHORT_TEXT EMPTY">
+                    <DefaultProviderPolicy defaultSystemProvider="DAY_OF_WEEK" defaultSystemProviderType="SHORT_TEXT" />
+                    <Complication type="SHORT_TEXT">
+                        <PartText x="50" y="50" width="100" height="30">
+                            <Text align="CENTER">
+                                <Font family="SYNC-TO-DEVICE" size="20" color="#FFFFFF"/>
+                                <Template><Parameter expression="[COMPLICATION.TEXT]"/></Template>
+                            </Text>
+                        </PartText>
+                    </Complication>
+                </ComplicationSlot>
+
+                <!-- TOP RIGHT -->
+                <ComplicationSlot x="300" y="50" width="100" height="100" slotId="COMP_TOP_RIGHT" 
+                                  supportedTypes="SHORT_TEXT EMPTY">
+                    <DefaultProviderPolicy defaultSystemProvider="DATE" defaultSystemProviderType="SHORT_TEXT" />
+                    <Complication type="SHORT_TEXT">
+                        <PartText x="50" y="50" width="100" height="30">
+                            <Text align="CENTER">
+                                <Font family="SYNC-TO-DEVICE" size="20" color="#FFFFFF"/>
+                                <Template><Parameter expression="[COMPLICATION.TEXT]"/></Template>
+                            </Text>
+                        </PartText>
+                    </Complication>
+                </ComplicationSlot>
+
+                <!-- BOTTOM LEFT -->
+                <ComplicationSlot x="50" y="300" width="100" height="100" slotId="COMP_BOTTOM_LEFT" 
+                                  supportedTypes="SHORT_TEXT EMPTY">
+                    <DefaultProviderPolicy defaultSystemProvider="HEART_RATE" defaultSystemProviderType="SHORT_TEXT" />
+                    <Complication type="SHORT_TEXT">
+                        <PartText x="50" y="50" width="100" height="30">
+                            <Text align="CENTER">
+                                <Font family="SYNC-TO-DEVICE" size="20" color="#ff78b4"/> <!-- Neon Pink for HR -->
+                                <Variant mode="ambient" target="color" value="#AAAAAA" />
+                                <Template><Parameter expression="[COMPLICATION.TEXT]"/></Template>
+                            </Text>
+                        </PartText>
+                    </Complication>
+                </ComplicationSlot>
+
+                <!-- BOTTOM RIGHT -->
+                <ComplicationSlot x="300" y="300" width="100" height="100" slotId="COMP_BOTTOM_RIGHT" 
+                                  supportedTypes="SHORT_TEXT EMPTY">
+                    <DefaultProviderPolicy defaultSystemProvider="STEP_COUNT" defaultSystemProviderType="SHORT_TEXT" />
+                    <Complication type="SHORT_TEXT">
+                        <PartText x="50" y="50" width="100" height="30">
+                            <Text align="CENTER">
+                                <Font family="SYNC-TO-DEVICE" size="20" color="#50e6ff"/> <!-- Neon Cyan for Steps -->
+                                <Variant mode="ambient" target="color" value="#AAAAAA" />
+                                <Template><Parameter expression="[COMPLICATION.TEXT]"/></Template>
+                            </Text>
+                        </PartText>
+                    </Complication>
+                </ComplicationSlot>
+
+            </Default> <!-- End of Normal UI Default Block -->
+        </Condition> <!-- End of Battery Saver Condition -->
+
+    </Scene>
+</WatchFace>

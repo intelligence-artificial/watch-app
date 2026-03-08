@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Art Faces</string>
+    <string name="moire_face_name">Moiré</string>
+    <string name="void_mesh_face_name">Void Mesh</string>
+    <string name="kanji_neon_face_name">漢字ネオン</string>
+    <string name="tokyo_drift_face_name">東京ドリフト</string>
+    <string name="sakura_circuit_face_name">桜回路</string>
+    <string name="tamagotchi_face_name">WatchPet</string>
+</resources>
