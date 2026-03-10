@@ -1,5 +1,5 @@
 # ============================================
-# Watch Voice Recorder - .gitignore
+# watch-app — .gitignore
 # ============================================
 
 # Build outputs
@@ -7,9 +7,7 @@
 *.aab
 *.dex
 *.class
-wear/build/
-mobile/build/
-build/
+**/build/
 .gradle/
 .cxx/
 
@@ -29,18 +27,16 @@ recordings/
 *.m4a
 *.wav
 
-# ML Models (too large for git, bundled at build time)
+# ML Models (too large for git)
 mobile/src/main/assets/model/
 *.bin
 *.ggml
 
-# whisper.cpp source clone (cloned at build time if needed)
+# whisper.cpp source clone
 mobile/whisper.cpp/
 
-# JNI build outputs
+# JNI / native build outputs
 mobile/src/main/jni/
-
-# Native build outputs
 *.so
 *.o
 
@@ -56,7 +52,7 @@ desktop.ini
 debug_phone.bat
 debug_watch.bat
 
-# Environment files (if any)
+# Environment files
 .env
 .env.*
 
@@ -68,3 +64,13 @@ debug_watch.bat
 
 # Vosk temp extraction
 vosk-extract/
+
+# Antigravity outputs (agent temp files)
+.antigravity-outputs/
+
+# Python
+venv/
+__pycache__/
+
+# Node (if any tooling)
+node_modules/

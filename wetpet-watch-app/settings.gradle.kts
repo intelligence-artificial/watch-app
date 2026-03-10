@@ -14,9 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "WetPet"
-
-// Sub-projects are now standalone:
-//   wetpet-watch-app/  — watch face (WFF) + wear companion
-//   wetpet-phone-app/  — phone app
-//   wetpet-watch/      — old watch faces (legacy reference)
+rootProject.name = "WetPetWatch"
+include(":watch_face", ":wear")

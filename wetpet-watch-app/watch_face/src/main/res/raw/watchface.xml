@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- WetPet — Watch Face Format (WFF v2) -->
+<WatchFace width="450" height="450">
+
+    <UserConfigurations>
+        <!-- Color Options -->
+        <ListConfiguration id="PET_COLOR" displayName="Pet Color" defaultValue="green">
+            <ListOption id="green" displayName="Neon Green" />
+            <ListOption id="blue" displayName="Neon Blue" />
+            <ListOption id="pink" displayName="Neon Pink" />
+            <ListOption id="yellow" displayName="Neon Yellow" />
+        </ListConfiguration>
+    </UserConfigurations>
+
+    <Scene backgroundColor="#020206">
+
+        <!-- ========================================== -->
+        <!--  BATTERY ARC (TOP)                        -->
+        <!-- ========================================== -->
+        <PartDraw x="0" y="0" width="450" height="450">
+            <Variant mode="ambient" target="alpha" value="0"/>
+            <Arc centerX="225" centerY="225" width="410" height="410"
+                 startAngle="-135" endAngle="-45" thickness="6">
+                <Stroke color="#19FFFFFF"/>
+            </Arc>
+            <Arc centerX="225" centerY="225" width="410" height="410"
+                 startAngle="-135" endAngle="-135 + ([BATTERY_PERCENT] * 0.9)" thickness="6">
+                 <Condition>
+                    <Expression>[BATTERY_PERCENT] le 30</Expression>
+                    <Stroke color="#ff4646"/>
+                    <Default>
+                        <Stroke color="#50ff78"/>
+                    </Default>
+                 </Condition>
+            </Arc>
+        </PartDraw>
+
+        <!-- ========================================== -->
+        <!--  STEPS ARC (BOTTOM)                       -->
+        <!-- ========================================== -->
+        <PartDraw x="0" y="0" width="450" height="450">
+            <Variant mode="ambient" target="alpha" value="0"/>
+            <Arc centerX="225" centerY="225" width="410" height="410"
+                 startAngle="45" endAngle="135" thickness="6">
+                <Stroke color="#19FFFFFF"/>
+            </Arc>
+            <Arc centerX="225" centerY="225" width="410" height="410"
+                 startAngle="45" endAngle="45 + (([STEP_COUNT] / 10000) * 90)" thickness="6"
+                 direction="CLOCKWISE">
+                <Stroke color="#50e6ff"/>
+            </Arc>
+        </PartDraw>
+
+        <!-- ========================================== -->
+        <!--  SECONDS ARC                              -->
+        <!-- ========================================== -->
+        <PartDraw x="0" y="0" width="450" height="450">
+            <Variant mode="ambient" target="alpha" value="0"/>
+            <Arc centerX="225" centerY="225" width="360" height="360"
+                 startAngle="-90" endAngle="-90 + [SECOND] * 6" thickness="4">
+                 <Stroke color="#3050ff78"/>
+            </Arc>
+        </PartDraw>
+
+        <!-- ========================================== -->
+        <!--  THE WETPET (CENTER)                      -->
+        <!-- ========================================== -->
+
+        <!-- Night mode (sleeping) -->
+        <Condition>
+            <Expression>[HOUR_0_23] ge 23 or [HOUR_0_23] le 5</Expression>
+
+            <PartImage x="153" y="145" width="144" height="144">
+                <Variant mode="ambient" target="image" value="pet_sleep_aod" />
+                <Image resource="pet_sleep_green" />
+                <Variant configuration="PET_COLOR" optionId="blue" target="image" value="pet_sleep_blue" />
+                <Variant configuration="PET_COLOR" optionId="pink" target="image" value="pet_sleep_pink" />
+                <Variant configuration="PET_COLOR" optionId="yellow" target="image" value="pet_sleep_yellow" />
+            </PartImage>
+
+            <Default>
+                <!-- AOD: static outline -->
+                <PartImage x="153" y="145" width="144" height="144">
+                    <Variant mode="ambient" target="alpha" value="255" />
+                    <Variant mode="ambient" target="image" value="pet_idle_aod" />
+                    <Variant mode="interactive" target="alpha" value="0" />
+                    <Image resource="pet_idle_aod" />
+                </PartImage>
+
+                <!-- Interactive: animated pet with bounce -->
+                <Group x="153" y="145" width="144" height="144">
+                    <Variant mode="ambient" target="alpha" value="0" />
+                    <Transform target="y" value="sin([SECOND] * 3) * 3" />
+
+                    <Condition>
+                        <Expression>([SECOND] % 2) eq 0</Expression>
+                        <PartImage x="0" y="0" width="144" height="144">
+                            <Image resource="pet_idle_1_green" />
+                            <Variant configuration="PET_COLOR" optionId="blue" target="image" value="pet_idle_1_blue" />
+                            <Variant configuration="PET_COLOR" optionId="pink" target="image" value="pet_idle_1_pink" />
+                            <Variant configuration="PET_COLOR" optionId="yellow" target="image" value="pet_idle_1_yellow" />
+                        </PartImage>
+                        <Default>
+                            <PartImage x="0" y="0" width="144" height="144">
+                                <Image resource="pet_idle_2_green" />
+                                <Variant configuration="PET_COLOR" optionId="blue" target="image" value="pet_idle_2_blue" />
+                                <Variant configuration="PET_COLOR" optionId="pink" target="image" value="pet_idle_2_pink" />
+                                <Variant configuration="PET_COLOR" optionId="yellow" target="image" value="pet_idle_2_yellow" />
+                            </PartImage>
+                        </Default>
+                    </Condition>
+                </Group>
+            </Default>
+        </Condition>
+
+        <!-- ========================================== -->
+        <!--  DIGITAL CLOCK (BOTTOM)                   -->
+        <!-- ========================================== -->
+        <!-- Clock glow (interactive only) -->
+        <PartText x="225" y="345" width="200" height="60">
+            <Variant mode="ambient" target="alpha" value="0"/>
+            <Text align="CENTER">
+                <Font family="SYNC-TO-DEVICE" size="48" color="#4050ff78" weight="BOLD" />
+                <Template>%sh:%02d
+                    <Parameter expression="[HOUR_1_12]" />
+                    <Parameter expression="[MINUTE]" />
+                </Template>
+            </Text>
+        </PartText>
+        <!-- Clock main -->
+        <PartText x="225" y="345" width="200" height="60">
+            <Text align="CENTER">
+                <Font family="SYNC-TO-DEVICE" size="48" color="#50ff78" weight="BOLD" />
+                <Variant mode="ambient" target="color" value="#AAAAAA" />
+                <Template>%sh:%02d
+                    <Parameter expression="[HOUR_1_12]" />
+                    <Parameter expression="[MINUTE]" />
+                </Template>
+            </Text>
+        </PartText>
+
+        <!-- ========================================== -->
+        <!--  DATE (BELOW CLOCK)                       -->
+        <!-- ========================================== -->
+        <PartText x="225" y="385" width="200" height="30">
+            <Text align="CENTER">
+                <Font family="SYNC-TO-DEVICE" size="18" color="#B0B0B0" />
+                <Variant mode="ambient" target="color" value="#777777" />
+                <Template>%s %d/%d
+                    <Parameter expression="[DAY_OF_WEEK_S]" />
+                    <Parameter expression="[MONTH]" />
+                    <Parameter expression="[DAY_OF_MONTH]" />
+                </Template>
+            </Text>
+        </PartText>
+
+        <!-- ========================================== -->
+        <!--  STEP COUNT (ABOVE PET)                   -->
+        <!-- ========================================== -->
+        <PartText x="225" y="115" width="200" height="30">
+            <Variant mode="ambient" target="alpha" value="0"/>
+            <Text align="CENTER">
+                <Font family="SYNC-TO-DEVICE" size="16" color="#50e6ff" />
+                <Template>%d steps
+                    <Parameter expression="[STEP_COUNT]" />
+                </Template>
+            </Text>
+        </PartText>
+
+        <!-- ========================================== -->
+        <!--  BATTERY % (TOP)                          -->
+        <!-- ========================================== -->
+        <PartText x="225" y="55" width="100" height="25">
+            <Variant mode="ambient" target="alpha" value="0"/>
+            <Text align="CENTER">
+                <Font family="SYNC-TO-DEVICE" size="14" color="#78C890" />
+                <Template>%d%%
+                    <Parameter expression="[BATTERY_PERCENT]" />
+                </Template>
+            </Text>
+        </PartText>
+
+    </Scene>
+</WatchFace>
