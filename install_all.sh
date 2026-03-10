@@ -40,6 +40,9 @@ fi
 echo "⌚ Target: $WATCH_ID"
 echo ""
 
+# Remove old app ID (one-time migration from com.tamagotchi.pet → com.wetpet.watch)
+adb -s "$WATCH_ID" uninstall "com.tamagotchi.pet" 2>/dev/null && echo "   🧹 Removed old com.tamagotchi.pet" || true
+
 # Install
 echo "⌚ Installing WetPet watch face (WFF)..."
 adb -s "$WATCH_ID" install -r "$FACE_APK" && echo "   ✓ Watch face installed" || echo "   ❌ Watch face install failed"

@@ -9,12 +9,10 @@ import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 
 @Composable
-fun TamagotchiWearApp() {
+fun WetPetWearApp(healthDataManager: HealthDataManager) {
   val context = LocalContext.current
   val petStateManager = remember { PetStateManager(context) }
-  val healthDataManager = remember { HealthDataManager(context).also { it.start() } }
   val petStatusEngine = remember { PetStatusEngine(context) }
-  val fitnessDataSender = remember { FitnessDataSender(context) }
   val navController = rememberSwipeDismissableNavController()
 
   MaterialTheme {

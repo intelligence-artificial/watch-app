@@ -54,11 +54,16 @@ class PetStatusEngine(private val context: Context) {
     val stepGoal = 10_000f
     val calGoal = 2000f
 
-    // Happiness — driven by activity progress
+    // Happiness — driven by activity progress (default to 0.5 when no data)
     val stepsRatio = (health.dailySteps / stepGoal).coerceAtMost(1f)
     val floorsRatio = (health.floorsClimbed / 10f).coerceAtMost(1f)
     val activeMinRatio = (health.activeMinutesZone2Plus / 30f).coerceAtMost(1f)
-    needs.happiness = (stepsRatio * 0.5f + floorsRatio * 0.2f + activeMinRatio * 0.3f)
+    val hasAnyData = health.dailySteps > 0 || health.heartRate > 0 || health.calories > 0
+    needs.happiness = if (hasAnyData) {
+      (stepsRatio * 0.5f + floorsRatio * 0.2f + activeMinRatio * 0.3f).coerceAtLeast(0.15f)
+    } else {
+      0.5f // No health data yet → neutral mood
+    }
 
     // Hunger — depletes over time, boosted by calories
     needs.hunger -= (dtSeconds / 3600f) * 0.05f  // 5% per hour

@@ -8,9 +8,9 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.tamagotchi.pet"
+        applicationId = "com.wetpet.watch"
         minSdk = 30
-        targetSdk = 33
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
     }
