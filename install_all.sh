@@ -6,15 +6,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FACE_APK="$SCRIPT_DIR/wetpet-watch-app/watch_face/build/outputs/apk/debug/watch_face-debug.apk"
 WEAR_APK="$SCRIPT_DIR/wetpet-watch-app/wear/build/outputs/apk/debug/wear-debug.apk"
 
-# Old package IDs to remove (prevents duplicates)
-OLD_PACKAGES=(
-  "com.watchvoice.recorder"
-  "com.watchvoice.faces"
-  "com.tamagotchi.pet"
-  "com.tamagotchi.pet.watchface"
-  "com.tamagotchi.wetpet.watchface"
-)
-
 echo "╔════════════════════════════════════════════╗"
 echo "║  WetPet — Install (Watch Only)             ║"
 echo "╚════════════════════════════════════════════╝"
@@ -38,7 +29,6 @@ while IFS= read -r line; do
 done <<< "$(adb devices -l | tail -n +2)"
 
 if [[ -z "$WATCH_ID" ]]; then
-  # Fallback: use first device
   WATCH_ID=$(adb devices | tail -n +2 | head -1 | awk '{print $1}')
 fi
 
@@ -48,13 +38,6 @@ if [[ -z "$WATCH_ID" ]]; then
 fi
 
 echo "⌚ Target: $WATCH_ID"
-echo ""
-
-# Uninstall old versions
-echo "🧹 Removing old versions..."
-for pkg in "${OLD_PACKAGES[@]}"; do
-  adb -s "$WATCH_ID" uninstall "$pkg" 2>/dev/null && echo "   Removed $pkg" || true
-done
 echo ""
 
 # Install

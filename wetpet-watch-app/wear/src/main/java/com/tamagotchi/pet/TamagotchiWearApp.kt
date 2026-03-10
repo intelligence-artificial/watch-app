@@ -10,40 +10,43 @@ import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 
 @Composable
 fun TamagotchiWearApp() {
-    val context = LocalContext.current
-    val petStateManager = remember { PetStateManager(context) }
-    val healthDataManager = remember { HealthDataManager(context).also { it.start() } }
-    val fitnessDataSender = remember { FitnessDataSender(context) }
-    val navController = rememberSwipeDismissableNavController()
+  val context = LocalContext.current
+  val petStateManager = remember { PetStateManager(context) }
+  val healthDataManager = remember { HealthDataManager(context).also { it.start() } }
+  val petStatusEngine = remember { PetStatusEngine(context) }
+  val fitnessDataSender = remember { FitnessDataSender(context) }
+  val navController = rememberSwipeDismissableNavController()
 
-    MaterialTheme {
-        SwipeDismissableNavHost(
-            navController = navController,
-            startDestination = "home"
-        ) {
-            composable("home") {
-                HomeScreen(
-                    petStateManager = petStateManager,
-                    healthDataManager = healthDataManager,
-                    onNavigateToCustomize = { navController.navigate("customize") },
-                    onNavigateToStats = { navController.navigate("stats") }
-                )
-            }
+  MaterialTheme {
+    SwipeDismissableNavHost(
+      navController = navController,
+      startDestination = "home"
+    ) {
+      composable("home") {
+        HomeScreen(
+          petStateManager = petStateManager,
+          healthDataManager = healthDataManager,
+          petStatusEngine = petStatusEngine,
+          onNavigateToCustomize = { navController.navigate("customize") },
+          onNavigateToStats = { navController.navigate("stats") }
+        )
+      }
 
-            composable("customize") {
-                CustomizeScreen(
-                    petStateManager = petStateManager,
-                    onBack = { navController.popBackStack() }
-                )
-            }
+      composable("customize") {
+        CustomizeScreen(
+          petStateManager = petStateManager,
+          onBack = { navController.popBackStack() }
+        )
+      }
 
-            composable("stats") {
-                StatsScreen(
-                    petStateManager = petStateManager,
-                    healthDataManager = healthDataManager,
-                    onBack = { navController.popBackStack() }
-                )
-            }
-        }
+      composable("stats") {
+        StatsScreen(
+          petStateManager = petStateManager,
+          healthDataManager = healthDataManager,
+          petStatusEngine = petStatusEngine,
+          onBack = { navController.popBackStack() }
+        )
+      }
     }
+  }
 }

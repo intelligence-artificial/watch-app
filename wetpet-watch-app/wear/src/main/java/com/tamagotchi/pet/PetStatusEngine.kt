@@ -1,0 +1,186 @@
+package com.tamagotchi.pet
+
+import android.content.Context
+import java.util.Calendar
+
+/**
+ * Core emotion engine — takes raw health data, computes NeedsVector,
+ * resolves emotion, applies hysteresis smoothing.
+ */
+class PetStatusEngine(private val context: Context) {
+
+  private var needs = PetNeeds.load(context)
+  private val smoother = EmotionSmoother()
+  private var lastUpdateMs = System.currentTimeMillis()
+  private var lastSaveMs = System.currentTimeMillis()
+
+  val currentEmotion: PetEmotion get() = smoother.currentEmotion
+  val currentNeeds: PetNeeds get() = needs
+
+  /** Call this every ~500ms from the wear app or periodically */
+  fun update(health: HealthDataSnapshot) {
+    val now = System.currentTimeMillis()
+    val dtSeconds = ((now - lastUpdateMs) / 1000f).coerceIn(0f, 300f)
+    lastUpdateMs = now
+
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+
+    // ── Compute NeedsVector from health data ──
+    updateNeeds(health, dtSeconds, hour)
+
+    // ── Resolve emotion ──
+    val resolved = resolveEmotion(health, hour)
+    smoother.update(resolved)
+
+    // ── Step milestones → XP ──
+    val currentMilestone = health.dailySteps / 1000
+    if (currentMilestone > needs.lastStepMilestone) {
+      val milestonesEarned = currentMilestone - needs.lastStepMilestone
+      needs.awardXp(milestonesEarned * 10)
+      needs.happiness = (needs.happiness + milestonesEarned * 0.1f).coerceAtMost(1f)
+      needs.lastStepMilestone = currentMilestone
+    }
+
+    needs.clamp()
+
+    // Save every 5 minutes
+    if (now - lastSaveMs > 5 * 60 * 1000L) {
+      PetNeeds.save(context, needs)
+      lastSaveMs = now
+    }
+  }
+
+  private fun updateNeeds(health: HealthDataSnapshot, dtSeconds: Float, hour: Int) {
+    val stepGoal = 10_000f
+    val calGoal = 2000f
+
+    // Happiness — driven by activity progress
+    val stepsRatio = (health.dailySteps / stepGoal).coerceAtMost(1f)
+    val floorsRatio = (health.floorsClimbed / 10f).coerceAtMost(1f)
+    val activeMinRatio = (health.activeMinutesZone2Plus / 30f).coerceAtMost(1f)
+    needs.happiness = (stepsRatio * 0.5f + floorsRatio * 0.2f + activeMinRatio * 0.3f)
+
+    // Hunger — depletes over time, boosted by calories
+    needs.hunger -= (dtSeconds / 3600f) * 0.05f  // 5% per hour
+    if (health.calories > 0) {
+      needs.hunger += (health.calories / calGoal) * 0.3f
+    }
+
+    // Energy — driven by HRV (high = rested) and SpO2
+    val hrvNorm = (health.heartRateVariability / 60f).coerceAtMost(1f)
+    val spo2Norm = if (health.spo2 > 0) ((health.spo2 - 90f) / 10f).coerceIn(0f, 1f) else 0.8f
+    val restHours = if (hour in 6..22) ((hour - 6f) / 16f) else 1f
+    needs.energy = (hrvNorm * 0.4f + spo2Norm * 0.3f + restHours * 0.3f)
+
+    // Health — penalize anomalies
+    var healthScore = 1.0f
+    if (health.spo2 in 1..94) healthScore -= 0.3f
+    if (health.skinTemperature > 1.0f) healthScore -= 0.2f
+    if (health.heartRate > 100 && health.dailySteps < 100) healthScore -= 0.2f
+    needs.health = healthScore.coerceAtLeast(0f)
+
+    // Stress — high resting HR + low HRV + sedentary
+    val hrAtRestScore = if (health.heartRate > 90 && health.dailySteps < 500) 0.4f else 0f
+    val lowHrvScore = if (health.heartRateVariability < 30f && health.heartRateVariability > 0f) 0.3f else 0f
+    val sedentaryScore = if (health.isSedentary) 0.3f else 0f
+    needs.stress = (hrAtRestScore + lowHrvScore + sedentaryScore)
+
+    // Social — increases with interaction, decreases over time
+    needs.social -= (dtSeconds / 3600f) * 0.02f
+
+    // Active minutes → XP
+    if (health.heartRate in 100..200) {
+      needs.awardXp(1)  // 1 XP per update cycle while active
+    }
+  }
+
+  private fun resolveEmotion(health: HealthDataSnapshot, hour: Int): PetEmotion {
+    // Priority 1: Critical physiological checks
+    if (health.spo2 in 1..89 || (health.heartRate > 180 && health.dailySteps < 10))
+      return PetEmotion.CRITICAL
+    // Priority 2: Sick
+    if (health.skinTemperature > 1.5f || health.spo2 in 92..94)
+      return PetEmotion.SICK
+    // Priority 3: Exhausted
+    if (needs.energy < 0.2f && health.heartRateVariability > 0f && health.heartRateVariability < 20f)
+      return PetEmotion.EXHAUSTED
+    // Priority 4: Stressed
+    if (needs.stress > 0.7f)
+      return PetEmotion.STRESSED
+    // Priority 5: Sleepy
+    if (hour in 22..23 || hour in 0..5 || needs.energy < 0.25f)
+      return PetEmotion.SLEEPY
+    // Priority 6: Hungry
+    if (needs.hunger < 0.3f && hour >= 10)
+      return PetEmotion.HUNGRY
+
+    // Activity states (HR-driven)
+    if (health.heartRate >= 140) return PetEmotion.EXCITED
+    if (health.heartRate in 100..139) return PetEmotion.ACTIVE
+
+    // Achievement states
+    if (needs.happiness > 0.85f && needs.energy > 0.85f && needs.health > 0.85f)
+      return PetEmotion.ECSTATIC
+    if (needs.happiness > 0.7f)
+      return PetEmotion.HAPPY
+
+    // Negative passive states
+    if (health.isSedentary && needs.happiness < 0.5f)
+      return PetEmotion.BORED
+    if (needs.happiness < 0.3f && hour >= 18)
+      return PetEmotion.SAD
+
+    // Default
+    return if (needs.happiness > 0.6f) PetEmotion.CONTENT else PetEmotion.IDLE
+  }
+
+  fun forceSave() {
+    PetNeeds.save(context, needs)
+  }
+}
+
+/**
+ * Snapshot of all health data — passed to the engine each update.
+ */
+data class HealthDataSnapshot(
+  val heartRate: Int = 0,
+  val dailySteps: Int = 0,
+  val calories: Int = 0,
+  val floorsClimbed: Int = 0,
+  val distance: Float = 0f,
+  val heartRateVariability: Float = 0f,
+  val skinTemperature: Float = 0f,
+  val spo2: Int = 0,
+  val activeMinutesZone2Plus: Int = 0,
+  val isSedentary: Boolean = false
+)
+
+/**
+ * Prevents emotion flapping — requires 30s sustained signal
+ * before committing to a new emotion.
+ * CRITICAL and EXCITED bypass this.
+ */
+class EmotionSmoother(private val confirmationMs: Long = 30_000L) {
+  private var candidateEmotion: PetEmotion = PetEmotion.IDLE
+  private var candidateSince: Long = 0L
+  var currentEmotion: PetEmotion = PetEmotion.IDLE
+    private set
+
+  fun update(resolved: PetEmotion) {
+    // Bypass smoother for urgent emotions
+    if (resolved.bypassSmoother) {
+      currentEmotion = resolved
+      candidateEmotion = resolved
+      return
+    }
+
+    val now = System.currentTimeMillis()
+    if (resolved != candidateEmotion) {
+      candidateEmotion = resolved
+      candidateSince = now
+    }
+    if (resolved == candidateEmotion && now - candidateSince >= confirmationMs) {
+      currentEmotion = resolved
+    }
+  }
+}
