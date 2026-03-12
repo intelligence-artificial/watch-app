@@ -1,10 +1,12 @@
 package com.watchvoice.faces
 
+import android.content.Context
 import android.graphics.*
 import android.os.BatteryManager
 import android.view.SurfaceHolder
 import androidx.wear.watchface.CanvasType
 import androidx.wear.watchface.ComplicationSlotsManager
+import androidx.wear.watchface.DrawMode
 import androidx.wear.watchface.Renderer
 import androidx.wear.watchface.WatchFace
 import androidx.wear.watchface.WatchFaceService
@@ -14,12 +16,18 @@ import androidx.wear.watchface.style.CurrentUserStyleRepository
 import androidx.wear.watchface.style.UserStyleSchema
 import java.time.ZonedDateTime
 import kotlin.math.PI
-import kotlin.math.sin
 import kotlin.math.cos
+import kotlin.math.sin
 
 /**
- * WatchPet — Retro pixel-art Tamagotchi watch face.
- * Uses the same WatchFaceService + CanvasRenderer pattern as all other faces.
+ * WatchPet V2 — Scuba Dive Computer Tamagotchi watch face.
+ *
+ * Design rules:
+ * - Concentric arc zones with background tracks, glow fills, tick boundaries
+ * - 3 complication arcs: Steps (bottom-left), BPM (bottom-right), Battery (top)
+ * - Seconds ticker ring (360° innermost)
+ * - Pet sprite center with emotion-driven glow
+ * - Proper ambient mode (dim gray, no glow, 1-min updates)
  */
 class TamagotchiWatchFaceService : WatchFaceService() {
 
@@ -46,7 +54,7 @@ class TamagotchiWatchFaceService : WatchFaceService() {
 }
 
 private class WatchPetRenderer(
-    private val context: android.content.Context,
+    private val context: Context,
     surfaceHolder: SurfaceHolder,
     watchState: WatchState,
     currentUserStyleRepository: CurrentUserStyleRepository
@@ -55,132 +63,252 @@ private class WatchPetRenderer(
     currentUserStyleRepository = currentUserStyleRepository,
     watchState = watchState,
     canvasType = CanvasType.SOFTWARE,
-    interactiveDrawModeUpdateDelayMillis = 500L // Update every 500ms (2fps is fine for a pet)
+    interactiveDrawModeUpdateDelayMillis = 500L
 ) {
-    // ── Sprite Data ──
-    // Each sprite is a 12x12 grid. Values: 0=transparent, 1=body, 2=bodyDim, 3=eyes, 4=cheeks, 5=shadow
-    private val spriteIdle1 = arrayOf(
-        intArrayOf(0,0,0,0,1,1,1,1,0,0,0,0),
-        intArrayOf(0,0,0,1,1,1,1,1,1,0,0,0),
-        intArrayOf(0,0,1,1,1,1,1,1,1,1,0,0),
-        intArrayOf(0,1,1,3,1,1,1,1,3,1,1,0),
-        intArrayOf(0,1,1,3,1,1,1,1,3,1,1,0),
-        intArrayOf(0,1,1,1,1,1,1,1,1,1,1,0),
-        intArrayOf(0,1,4,1,1,5,5,1,1,4,1,0),
-        intArrayOf(0,0,1,1,1,1,1,1,1,1,0,0),
-        intArrayOf(0,0,0,1,2,1,1,2,1,0,0,0),
-        intArrayOf(0,0,0,0,1,1,1,1,0,0,0,0),
-        intArrayOf(0,0,0,1,0,0,0,0,1,0,0,0),
-        intArrayOf(0,0,1,1,0,0,0,0,1,1,0,0)
-    )
-    private val spriteIdle2 = arrayOf(
-        intArrayOf(0,0,0,0,1,1,1,1,0,0,0,0),
-        intArrayOf(0,0,0,1,1,1,1,1,1,0,0,0),
-        intArrayOf(0,0,1,1,1,1,1,1,1,1,0,0),
-        intArrayOf(0,1,1,3,1,1,1,1,3,1,1,0),
-        intArrayOf(0,1,1,3,1,1,1,1,3,1,1,0),
-        intArrayOf(0,1,1,1,1,1,1,1,1,1,1,0),
-        intArrayOf(0,1,4,1,1,5,5,1,1,4,1,0),
-        intArrayOf(0,0,1,1,1,1,1,1,1,1,0,0),
-        intArrayOf(0,0,0,1,2,1,1,2,1,0,0,0),
-        intArrayOf(0,0,0,0,1,1,1,1,0,0,0,0),
-        intArrayOf(0,0,0,0,1,0,0,1,0,0,0,0),
-        intArrayOf(0,0,0,1,1,0,0,1,1,0,0,0)
-    )
-    private val spriteSleep = arrayOf(
-        intArrayOf(0,0,0,0,1,1,1,1,0,0,0,0),
-        intArrayOf(0,0,0,1,1,1,1,1,1,0,0,0),
-        intArrayOf(0,0,1,1,1,1,1,1,1,1,0,0),
-        intArrayOf(0,1,1,5,5,1,1,5,5,1,1,0),
-        intArrayOf(0,1,1,1,1,1,1,1,1,1,1,0),
-        intArrayOf(0,1,1,1,1,1,1,1,1,1,1,0),
-        intArrayOf(0,1,4,1,1,1,1,1,1,4,1,0),
-        intArrayOf(0,0,1,1,1,1,1,1,1,1,0,0),
-        intArrayOf(0,0,0,1,2,1,1,2,1,0,0,0),
-        intArrayOf(0,0,0,0,1,1,1,1,0,0,0,0),
-        intArrayOf(0,0,0,1,0,0,0,0,1,0,0,0),
-        intArrayOf(0,0,1,1,0,0,0,0,1,1,0,0)
-    )
+    // ── Drawable sprite cache ──
+    private val spriteCache = mutableMapOf<String, Bitmap?>()
+    private val TAG = "WF_PetSync"
 
-    // ── Neon Color Palette ──
-    private val bodyColor = Color.argb(255, 120, 255, 160)
-    private val bodyDimColor = Color.argb(255, 60, 180, 90)
-    private val eyeColor = Color.argb(255, 40, 40, 50)
-    private val cheekColor = Color.argb(180, 255, 140, 160)
-    private val shadowColor = Color.argb(200, 60, 60, 70)
+    private fun loadSprite(name: String): Bitmap? {
+        return spriteCache.getOrPut(name) {
+            val resId = context.resources.getIdentifier(name, "drawable", context.packageName)
+            android.util.Log.d(TAG, "loadSprite: name=$name pkg=${context.packageName} resId=$resId")
+            if (resId != 0) {
+                val bmp = android.graphics.BitmapFactory.decodeResource(context.resources, resId)
+                android.util.Log.d(TAG, "loadSprite: decoded=$name → ${bmp?.width}x${bmp?.height}")
+                bmp
+            } else {
+                android.util.Log.e(TAG, "loadSprite: RESOURCE NOT FOUND for '$name' in ${context.packageName}")
+                null
+            }
+        }
+    }
 
-    // ── Pre-rendered Bitmaps ──
-    private var bmpIdle1: Bitmap? = null
-    private var bmpIdle2: Bitmap? = null
-    private var bmpSleep: Bitmap? = null
+    /**
+     * Read pet config from the WetPet wear app via ContentProvider.
+     * Queries content://com.tamagotchi.pet.config/state
+     * Caches result for 10 seconds to avoid querying every frame.
+     */
+    private var cachedConfig: Triple<String, String, String>? = null
+    private var cacheTimestamp = 0L
 
-    // ── Paints ──
+    private fun readWearAppPrefs(): Triple<String, String, String> {
+        val now = System.currentTimeMillis()
+        val cached = cachedConfig
+        if (cached != null && (now - cacheTimestamp) < 10_000) {
+            return cached
+        }
+
+        android.util.Log.d(TAG, "readWearAppPrefs: querying ContentProvider...")
+
+        val result = try {
+            val uri = android.net.Uri.parse("content://com.tamagotchi.pet.config/state")
+            val cursor = context.contentResolver.query(uri, null, null, null, null)
+            android.util.Log.d(TAG, "readWearAppPrefs: cursor=${cursor != null}, count=${cursor?.count ?: -1}")
+
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val petType = it.getString(it.getColumnIndexOrThrow("pet_type"))
+                    val colorTheme = it.getString(it.getColumnIndexOrThrow("color_theme"))
+                    val emotion = it.getString(it.getColumnIndexOrThrow("emotion"))
+                    android.util.Log.d(TAG, "readWearAppPrefs: petType=$petType colorTheme=$colorTheme emotion=$emotion")
+
+                    val petPrefix = when (petType) {
+                        "BLOB" -> "pet"
+                        "CAT" -> "cat"
+                        "DOG" -> "dog"
+                        else -> "dog"
+                    }
+                    Triple(petPrefix, colorTheme.lowercase(), emotion)
+                } else {
+                    android.util.Log.w(TAG, "readWearAppPrefs: cursor empty!")
+                    Triple("dog", "green", "IDLE")
+                }
+            } ?: run {
+                android.util.Log.e(TAG, "readWearAppPrefs: cursor is NULL — provider not found?")
+                Triple("dog", "green", "IDLE")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "readWearAppPrefs: EXCEPTION: ${e.javaClass.simpleName}: ${e.message}")
+            Triple("dog", "green", "IDLE")
+        }
+
+        android.util.Log.d(TAG, "readWearAppPrefs: result=$result")
+        cachedConfig = result
+        cacheTimestamp = now
+        return result
+    }
+
+    private fun getSprite(hour: Int, second: Int, isAmbient: Boolean): Bitmap? {
+        val (pet, theme, _) = readWearAppPrefs()
+        val spriteName = when {
+            isAmbient -> "${pet}_sleep_aod"
+            hour >= 23 || hour <= 5 -> "${pet}_sleep_$theme"
+            second % 2 == 0 -> "${pet}_idle_1_$theme"
+            else -> "${pet}_idle_2_$theme"
+        }
+        android.util.Log.d(TAG, "getSprite: loading '$spriteName' (pet=$pet theme=$theme)")
+        return loadSprite(spriteName)
+    }
+
+    // ── Colors for arc complications ──
+    private val stepsColor = Color.argb(255, 0, 230, 120)
+    private val bpmColor = Color.argb(255, 255, 75, 100)
+    private val batteryColor = Color.argb(255, 0, 200, 255)
+
+    // ── Core paints ──
     private val bgPaint = Paint().apply { color = Color.parseColor("#020206") }
     private val clockPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.WHITE; textSize = 48f; typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+        color = Color.WHITE; typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+        textAlign = Paint.Align.CENTER
+    }
+    private val clockGlowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.argb(30, 120, 255, 160)
+        typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
         textAlign = Paint.Align.CENTER
     }
     private val datePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.argb(180, 200, 200, 200); textSize = 18f
+        color = Color.argb(140, 200, 200, 200)
         typeface = Typeface.create(Typeface.MONOSPACE, Typeface.NORMAL)
         textAlign = Paint.Align.CENTER
-    }
-    private val arcBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.argb(25, 255, 255, 255); style = Paint.Style.STROKE; strokeWidth = 6f; strokeCap = Paint.Cap.ROUND
-    }
-    private val batteryArcPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#50ff78"); style = Paint.Style.STROKE; strokeWidth = 6f; strokeCap = Paint.Cap.ROUND
-    }
-    private val stepsArcPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#50e6ff"); style = Paint.Style.STROKE; strokeWidth = 6f; strokeCap = Paint.Cap.ROUND
     }
     private val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.argb(40, 120, 255, 160); style = Paint.Style.FILL
-        maskFilter = BlurMaskFilter(30f, BlurMaskFilter.Blur.NORMAL)
-    }
-    private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.argb(120, 200, 200, 200); textSize = 12f
-        typeface = Typeface.create(Typeface.MONOSPACE, Typeface.NORMAL)
-        textAlign = Paint.Align.CENTER
+        color = Color.argb(30, 120, 255, 160); style = Paint.Style.FILL
+        maskFilter = BlurMaskFilter(25f, BlurMaskFilter.Blur.NORMAL)
     }
 
-    private fun getPixelColor(value: Int): Int = when(value) {
-        1 -> bodyColor; 2 -> bodyDimColor; 3 -> eyeColor; 4 -> cheekColor; 5 -> shadowColor
-        else -> Color.TRANSPARENT
+    // ── Health data ──
+    private val healthDataManager = HealthDataManager(context)
+
+    init {
+        healthDataManager.start()
     }
 
-    private fun renderSprite(sprite: Array<IntArray>, scale: Int = 10): Bitmap {
-        val rows = sprite.size; val cols = sprite[0].size
-        val bmp = Bitmap.createBitmap(cols * scale, rows * scale, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bmp)
-        val paint = Paint()
-        for (y in 0 until rows) {
-            for (x in 0 until cols) {
-                val c = getPixelColor(sprite[y][x])
-                if (c != Color.TRANSPARENT) {
-                    paint.color = c
-                    canvas.drawRect(
-                        (x * scale).toFloat(), (y * scale).toFloat(),
-                        ((x + 1) * scale).toFloat(), ((y + 1) * scale).toFloat(), paint
-                    )
-                }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  SCUBA-STYLE ARC COMPLICATION RENDERER
+    //  Adapted from user's design rules — always draws track, glow,
+    //  tick boundaries, and labeled value at arc midpoint.
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Draws a scuba-style arc complication (steps, BPM, battery etc.)
+     * @param canvas    Canvas to draw on
+     * @param cx/cy     Center of watch face
+     * @param radius    Arc ring radius from center
+     * @param trackWidth Stroke width of the ring (6-10f)
+     * @param startAngle Degrees from 3-o'clock
+     * @param sweepTotal Total arc span in degrees
+     * @param progress  0f–1f fill fraction
+     * @param fillColor Active arc color (ARGB with full alpha)
+     * @param label     Short text label ("BPM", "STEPS")
+     * @param value     Data value string ("72", "4,231")
+     * @param isAmbient Whether in ambient/AOD mode
+     */
+    private fun drawArcComplication(
+        canvas: Canvas, cx: Float, cy: Float,
+        radius: Float, trackWidth: Float,
+        startAngle: Float, sweepTotal: Float,
+        progress: Float,
+        fillColor: Int, label: String, value: String,
+        isAmbient: Boolean = false
+    ) {
+        val oval = RectF(
+            cx - radius, cy - radius, cx + radius, cy + radius
+        )
+
+        // 1. Background track — same arc, dim
+        val trackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = trackWidth
+            strokeCap = Paint.Cap.ROUND
+            color = if (isAmbient) {
+                Color.argb(20, 150, 150, 150)
+            } else {
+                Color.argb(35, Color.red(fillColor), Color.green(fillColor), Color.blue(fillColor))
             }
         }
-        return bmp
+        canvas.drawArc(oval, startAngle, sweepTotal, false, trackPaint)
+
+        // 2. Fill arc — progress portion with glow shadow
+        if (progress > 0.01f) {
+            if (!isAmbient) {
+                // Glow layer (wider, transparent)
+                val glowArcPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    style = Paint.Style.STROKE
+                    strokeWidth = trackWidth + 6f
+                    strokeCap = Paint.Cap.ROUND
+                    color = Color.argb(30,
+                        Color.red(fillColor), Color.green(fillColor), Color.blue(fillColor))
+                }
+                canvas.drawArc(oval, startAngle, sweepTotal * progress, false, glowArcPaint)
+            }
+
+            val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = trackWidth
+                strokeCap = Paint.Cap.ROUND
+                color = if (isAmbient) Color.argb(140, 180, 180, 180) else fillColor
+            }
+            canvas.drawArc(oval, startAngle, sweepTotal * progress, false, fillPaint)
+        }
+
+        // 3. End-cap tick marks at arc boundaries
+        val tickPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE; strokeWidth = 1.5f
+            color = if (isAmbient) {
+                Color.argb(30, 150, 150, 150)
+            } else {
+                Color.argb(60, Color.red(fillColor), Color.green(fillColor), Color.blue(fillColor))
+            }
+        }
+        val a0 = Math.toRadians(startAngle.toDouble())
+        val a1 = Math.toRadians((startAngle + sweepTotal).toDouble())
+        val inner = radius - trackWidth / 2f - 3f
+        val outer = radius + trackWidth / 2f + 3f
+
+        canvas.drawLine(
+            (cx + cos(a0) * inner).toFloat(), (cy + sin(a0) * inner).toFloat(),
+            (cx + cos(a0) * outer).toFloat(), (cy + sin(a0) * outer).toFloat(), tickPaint)
+        canvas.drawLine(
+            (cx + cos(a1) * inner).toFloat(), (cy + sin(a1) * inner).toFloat(),
+            (cx + cos(a1) * outer).toFloat(), (cy + sin(a1) * outer).toFloat(), tickPaint)
+
+        // 4. Label + value near arc midpoint
+        val midAngle = Math.toRadians((startAngle + sweepTotal * 0.5).toDouble())
+        val labelR = radius - trackWidth / 2f - 14f
+        val lx = (cx + cos(midAngle) * labelR).toFloat()
+        val ly = (cy + sin(midAngle) * labelR).toFloat()
+
+        val valPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textAlign = Paint.Align.CENTER; textSize = 18f
+            color = if (isAmbient) Color.argb(180, 200, 200, 200) else fillColor
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+        }
+        val lblPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textAlign = Paint.Align.CENTER; textSize = 11f
+            color = if (isAmbient) {
+                Color.argb(100, 150, 150, 150)
+            } else {
+                Color.argb(150, Color.red(fillColor), Color.green(fillColor), Color.blue(fillColor))
+            }
+            typeface = Typeface.MONOSPACE
+        }
+        canvas.drawText(value, lx, ly, valPaint)
+        canvas.drawText(label, lx, ly + 14f, lblPaint)
     }
 
-    private fun ensureBitmaps() {
-        if (bmpIdle1 == null) bmpIdle1 = renderSprite(spriteIdle1)
-        if (bmpIdle2 == null) bmpIdle2 = renderSprite(spriteIdle2)
-        if (bmpSleep == null) bmpSleep = renderSprite(spriteSleep)
-    }
+    // ═══════════════════════════════════════════════════════════════
+    //  MAIN RENDER LOOP
+    // ═══════════════════════════════════════════════════════════════
 
     override fun render(canvas: Canvas, bounds: Rect, zonedDateTime: ZonedDateTime) {
-        ensureBitmaps()
 
         val w = bounds.width().toFloat()
         val h = bounds.height().toFloat()
         val cx = w / 2f; val cy = h / 2f
+        val maxR = w * 0.46f
+        val isAmbient = renderParameters.drawMode == DrawMode.AMBIENT
 
         // Background
         canvas.drawRect(bounds, bgPaint)
@@ -189,66 +317,205 @@ private class WatchPetRenderer(
         val minute = zonedDateTime.minute
         val second = zonedDateTime.second
 
-        // ── Battery Arc (top) ──
-        val bm = context.getSystemService(android.content.Context.BATTERY_SERVICE) as BatteryManager
+        // Health data
+        val steps = healthDataManager.dailySteps
+        val bpm = healthDataManager.heartRate
+        val bm = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
         val battery = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY).coerceIn(0, 100)
-        val arcRect = RectF(20f, 20f, w - 20f, h - 20f)
 
-        canvas.drawArc(arcRect, -135f, 90f, false, arcBgPaint)
-        batteryArcPaint.color = if (battery <= 30) Color.parseColor("#ff4646") else Color.parseColor("#50ff78")
-        canvas.drawArc(arcRect, -135f, battery * 0.9f, false, batteryArcPaint)
+        // Read pet mood from the WetPet wear app's SharedPreferences
+        val (_, _, emotionName) = readWearAppPrefs()
+        val emotionColor = getEmotionColor(emotionName)
 
-        // ── Steps Arc (bottom) ──
-        canvas.drawArc(arcRect, 45f, 90f, false, arcBgPaint)
-        // We don't have step data from CanvasRenderer, so show a static indicator
-        canvas.drawArc(arcRect, 45f, 45f, false, stepsArcPaint)
+        // ──────── SECONDS TICKER RING (outermost, full 360°) ────────
+        if (!isAmbient) {
+            val secRadius = maxR * 0.96f
+            val secRect = RectF(cx - secRadius, cy - secRadius, cx + secRadius, cy + secRadius)
 
-        // ── Labels ──
-        canvas.drawText("BAT", cx, 50f, labelPaint)
-        canvas.drawText("${battery}%", cx, 64f, labelPaint)
+            // Background track
+            val secTrackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.argb(10, 80, 255, 120); style = Paint.Style.STROKE
+                strokeWidth = 3f; strokeCap = Paint.Cap.ROUND
+            }
+            canvas.drawArc(secRect, -90f, 360f, false, secTrackPaint)
 
-        // ── Pet Sprite ──
-        val sprite = when {
-            hour >= 23 || hour <= 5 -> bmpSleep!!
-            second % 2 == 0 -> bmpIdle1!!
-            else -> bmpIdle2!!
+            // Fill
+            val secFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.argb(55, 80, 255, 120); style = Paint.Style.STROKE
+                strokeWidth = 3f; strokeCap = Paint.Cap.ROUND
+            }
+            canvas.drawArc(secRect, -90f, second * 6f, false, secFillPaint)
+
+            // 12 tick marks at each hour position
+            val secTickPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.argb(30, 120, 255, 160); style = Paint.Style.STROKE; strokeWidth = 1f
+            }
+            for (i in 0 until 12) {
+                val angle = Math.toRadians((i * 30.0) - 90.0)
+                val innerR = secRadius - 5f
+                val outerR = secRadius + 5f
+                canvas.drawLine(
+                    (cx + cos(angle) * innerR).toFloat(), (cy + sin(angle) * innerR).toFloat(),
+                    (cx + cos(angle) * outerR).toFloat(), (cy + sin(angle) * outerR).toFloat(),
+                    secTickPaint
+                )
+            }
         }
 
-        // Subtle bounce
-        val bounceY = (sin(second.toDouble() * 0.5 * PI) * 3f).toFloat()
-        val petSize = 120f
+        // ──────── ARC COMPLICATIONS (3 rings, same radius) ────────
+
+        // Steps — bottom-left arc (green)
+        val stepsProgress = (steps / 10000f).coerceIn(0f, 1f)
+        val stepsValue = if (steps > 0) steps.toString() else "--"
+        drawArcComplication(canvas, cx, cy,
+            radius = maxR * 0.82f, trackWidth = 7f,
+            startAngle = 150f, sweepTotal = 80f,
+            progress = stepsProgress,
+            fillColor = stepsColor,
+            label = "STEPS", value = stepsValue,
+            isAmbient = isAmbient
+        )
+
+        // BPM — bottom-right arc (red/pink)
+        val bpmProgress = if (bpm > 0) ((bpm - 40f) / 160f).coerceIn(0f, 1f) else 0f
+        val bpmValue = if (bpm > 0) bpm.toString() else "--"
+        drawArcComplication(canvas, cx, cy,
+            radius = maxR * 0.82f, trackWidth = 7f,
+            startAngle = 310f, sweepTotal = 80f,
+            progress = bpmProgress,
+            fillColor = bpmColor,
+            label = "BPM", value = bpmValue,
+            isAmbient = isAmbient
+        )
+
+        // Battery — top arc (cyan), wider sweep
+        val batFillColor = if (battery <= 20) Color.argb(255, 255, 70, 70) else batteryColor
+        drawArcComplication(canvas, cx, cy,
+            radius = maxR * 0.82f, trackWidth = 7f,
+            startAngle = 200f, sweepTotal = 140f,
+            progress = battery / 100f,
+            fillColor = batFillColor,
+            label = "BAT", value = "$battery%",
+            isAmbient = isAmbient
+        )
+
+        // ──────── EMOTION GLOW RING (around pet zone) ────────
+        if (!isAmbient) {
+            val glowR = maxR * 0.52f
+            val glowRect = RectF(cx - glowR, cy - glowR, cx + glowR, cy + glowR)
+            val pulseAlpha = (20 + (sin(System.currentTimeMillis() / 1500.0) * 12).toInt()).coerceIn(8, 35)
+
+            val emotionGlowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE; strokeWidth = 2.5f
+                color = Color.argb(pulseAlpha,
+                    Color.red(emotionColor), Color.green(emotionColor), Color.blue(emotionColor))
+            }
+            canvas.drawArc(glowRect, 0f, 360f, false, emotionGlowPaint)
+        }
+
+        // ──────── PET SPRITE (center) ────────
+        val sprite = getSprite(hour, second, isAmbient)
+
+        // Bounce animation (suppressed in ambient)
+        val bounceY = if (isAmbient) 0f else (sin(second.toDouble() * 0.5 * PI) * 3f).toFloat()
+        val petSize = 100f
         val petX = cx - petSize / 2f
-        val petY = cy - petSize / 2f - 15f + bounceY
+        val petY = cy - petSize / 2f - 20f + bounceY
 
         // Glow behind pet
-        canvas.drawCircle(cx, cy - 15f + bounceY, petSize * 0.45f, glowPaint)
+        if (!isAmbient) {
+            glowPaint.color = Color.argb(25,
+                Color.red(emotionColor), Color.green(emotionColor), Color.blue(emotionColor))
+            canvas.drawCircle(cx, cy - 20f + bounceY, petSize * 0.4f, glowPaint)
+        }
 
-        // Draw scaled pet
-        val destRect = RectF(petX, petY, petX + petSize, petY + petSize)
-        val srcPaint = Paint().apply { isFilterBitmap = false } // Nearest-neighbor for pixel art
-        canvas.drawBitmap(sprite, null, destRect, srcPaint)
+        // Draw pet (nearest-neighbor scaling for pixel art)
+        if (sprite != null) {
+            val destRect = RectF(petX, petY, petX + petSize, petY + petSize)
+            val srcPaint = Paint().apply { isFilterBitmap = false }
+            canvas.drawBitmap(sprite, null, destRect, srcPaint)
+        }
 
-        // ── Clock ──
+        // ──────── CLOCK (below pet) ────────
         val h12 = if (hour % 12 == 0) 12 else hour % 12
         val timeStr = String.format("%d:%02d", h12, minute)
-        canvas.drawText(timeStr, cx, h - 65f, clockPaint)
 
-        // ── Date ──
-        val dayNames = arrayOf("SUN","MON","TUE","WED","THU","FRI","SAT")
-        val dow = zonedDateTime.dayOfWeek.value % 7  // 0=Sunday
-        val day = zonedDateTime.dayOfMonth
-        val mon = zonedDateTime.monthValue
-        canvas.drawText("${dayNames[dow]} $mon/$day", cx, h - 42f, datePaint)
+        clockPaint.textSize = w * 0.11f
+        clockGlowPaint.textSize = w * 0.11f
+        val timeY = cy + petSize / 2f + 10f
 
-        // ── Seconds tick arc ──
-        val secArcPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(48, 80, 255, 120); style = Paint.Style.STROKE; strokeWidth = 4f; strokeCap = Paint.Cap.ROUND
+        if (isAmbient) {
+            clockPaint.color = Color.argb(200, 200, 200, 200)
+        } else {
+            clockPaint.color = Color.WHITE
+            canvas.drawText(timeStr, cx, timeY, clockGlowPaint)
         }
-        val secRect = RectF(35f, 35f, w - 35f, h - 35f)
-        canvas.drawArc(secRect, -90f, second * 6f, false, secArcPaint)
+        canvas.drawText(timeStr, cx, timeY, clockPaint)
+
+        // ──────── DATE (tiny, below clock) ────────
+        if (!isAmbient) {
+            datePaint.textSize = 14f
+            val dayNames = arrayOf("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT")
+            val dow = zonedDateTime.dayOfWeek.value % 7
+            val day = zonedDateTime.dayOfMonth
+            val mon = zonedDateTime.monthValue
+            canvas.drawText("${dayNames[dow]} $mon/$day", cx, timeY + 18f, datePaint)
+        }
+
+        // ──────── EMOTION STATUS TEXT (bottom center) ────────
+        if (!isAmbient) {
+            val moodLabel = getEmotionLabel(emotionName)
+            val moodPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                textSize = 11f; textAlign = Paint.Align.CENTER
+                typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+                color = Color.argb(140,
+                    Color.red(emotionColor), Color.green(emotionColor), Color.blue(emotionColor))
+            }
+            canvas.drawText(moodLabel, cx, timeY + 36f, moodPaint)
+        }
     }
 
     override fun renderHighlightLayer(canvas: Canvas, bounds: Rect, zonedDateTime: ZonedDateTime) {
         canvas.drawColor(Color.argb(60, 0, 0, 0))
+    }
+
+    // ── Emotion helpers ──
+
+    private fun getEmotionColor(emotionName: String): Int {
+        return when (emotionName) {
+            "CRITICAL" -> Color.parseColor("#FF4646")
+            "SICK" -> Color.parseColor("#B0C0B0")
+            "EXHAUSTED" -> Color.parseColor("#808080")
+            "STRESSED" -> Color.parseColor("#FF8040")
+            "SLEEPY" -> Color.parseColor("#6060A0")
+            "HUNGRY" -> Color.parseColor("#FFAA50")
+            "SAD" -> Color.parseColor("#5070A0")
+            "BORED" -> Color.parseColor("#808080")
+            "CONTENT" -> Color.parseColor("#78FFA0")
+            "ACTIVE" -> Color.parseColor("#00FFEE")
+            "EXCITED" -> Color.parseColor("#FF50FF")
+            "HAPPY" -> Color.parseColor("#50E6FF")
+            "ECSTATIC" -> Color.parseColor("#FFD700")
+            else -> Color.parseColor("#50FF78") // IDLE
+        }
+    }
+
+    private fun getEmotionLabel(emotionName: String): String {
+        return when (emotionName) {
+            "CRITICAL" -> "⚠ ALERT"
+            "SICK" -> "feeling ill..."
+            "EXHAUSTED" -> "so tired..."
+            "STRESSED" -> "stressed out"
+            "SLEEPY" -> "sleepy time"
+            "HUNGRY" -> "feed me!"
+            "SAD" -> "feeling down"
+            "BORED" -> "bored..."
+            "CONTENT" -> "feeling good"
+            "ACTIVE" -> "in the zone!"
+            "EXCITED" -> "LET'S GO!!"
+            "HAPPY" -> "great day!"
+            "ECSTATIC" -> "GOAL SMASHED!"
+            else -> "all good"
+        }
     }
 }

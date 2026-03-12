@@ -68,9 +68,19 @@ dependencies {
     // Wear Data Layer
     implementation("com.google.android.gms:play-services-wearable:18.1.0")
 
-    // Health Services
+    // Health Services (passive monitoring)
     implementation("androidx.health:health-services-client:1.1.0-alpha05")
     implementation("com.google.guava:guava:32.1.3-android")
+
+    // Health Connect (for Fitbit-exclusive metrics: HRV, SpO2)
+    implementation("androidx.health.connect:connect-client:1.0.0-alpha11")
+
+    // WorkManager (for boot re-registration of passive listener)
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    // Complications API (for serving pet sprite to watch face)
+    implementation("androidx.wear.watchface:watchface-complications-data-source:1.2.1")
+    implementation("androidx.wear.watchface:watchface-complications-data:1.2.1")
 
     // Debug
     debugImplementation("androidx.compose.ui:ui-tooling:1.5.4")

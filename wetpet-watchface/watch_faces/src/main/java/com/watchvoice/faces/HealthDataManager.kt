@@ -8,60 +8,120 @@ import androidx.health.services.client.PassiveMonitoringClient
 import androidx.health.services.client.data.DataPointContainer
 import androidx.health.services.client.data.DataType
 import androidx.health.services.client.data.PassiveListenerConfig
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
- * Lightweight manager for passive health data (heart rate + daily steps).
- * Uses Health Services PassiveMonitoringClient for background-efficient reads.
- * Falls back gracefully to 0 if the watch doesn't support a sensor.
+ * Health data manager for watch faces.
+ * Pulls heart rate, daily steps, and calories via passive Health Services.
+ * Falls back gracefully to 0 if a sensor isn't supported.
  */
 class HealthDataManager(context: Context) {
 
     companion object {
-        private const val TAG = "HealthDataMgr"
+        private const val TAG = "WF_HealthDataMgr"
     }
 
-    // Latest values – read from the renderer on every frame
     @Volatile var heartRate: Int = 0
         private set
     @Volatile var dailySteps: Int = 0
         private set
+    @Volatile var calories: Int = 0
+        private set
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val passiveClient: PassiveMonitoringClient =
         HealthServices.getClient(context).passiveMonitoringClient
 
     private val callback = object : PassiveListenerCallback {
         override fun onNewDataPointsReceived(dataPoints: DataPointContainer) {
-            // Heart rate – grab most recent sample
-            val hrPoints = dataPoints.getData(DataType.HEART_RATE_BPM)
-            if (hrPoints.isNotEmpty()) {
-                val latest = hrPoints.last().value.toInt()
-                if (latest in 30..220) { // sanity check
-                    heartRate = latest
-                    Log.d(TAG, "HR updated: $heartRate bpm")
+            // Heart rate
+            try {
+                val hrPoints = dataPoints.getData(DataType.HEART_RATE_BPM)
+                if (hrPoints.isNotEmpty()) {
+                    val latest = hrPoints.last().value.toInt()
+                    if (latest in 30..220) {
+                        heartRate = latest
+                        Log.d(TAG, "HR: $heartRate bpm")
+                    }
                 }
+            } catch (e: Exception) {
+                Log.w(TAG, "HR read failed: ${e.message}")
             }
 
-            // Daily steps – cumulative since midnight
-            val stepPoints = dataPoints.getData(DataType.STEPS_DAILY)
-            if (stepPoints.isNotEmpty()) {
-                val latest = stepPoints.last().value
-                dailySteps = latest.toInt()
-                Log.d(TAG, "Steps updated: $dailySteps")
+            // Steps
+            try {
+                val stepPoints = dataPoints.getData(DataType.STEPS_DAILY)
+                if (stepPoints.isNotEmpty()) {
+                    dailySteps = stepPoints.last().value.toInt()
+                    Log.d(TAG, "Steps: $dailySteps")
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Steps read failed: ${e.message}")
+            }
+
+            // Calories
+            try {
+                val calPoints = dataPoints.getData(DataType.CALORIES_DAILY)
+                if (calPoints.isNotEmpty()) {
+                    calories = calPoints.last().value.toInt()
+                    Log.d(TAG, "Calories: $calories")
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Calories read failed: ${e.message}")
             }
         }
     }
 
     fun start() {
-        val config = PassiveListenerConfig.Builder()
-            .setDataTypes(setOf(DataType.HEART_RATE_BPM, DataType.STEPS_DAILY))
-            .build()
+        scope.launch {
+            try {
+                // Check capabilities before registering
+                val capabilities = passiveClient.getCapabilitiesAsync().get()
+                val supported = capabilities.supportedDataTypesPassiveMonitoring
 
-        passiveClient.setPassiveListenerCallback(config, callback)
-        Log.d(TAG, "Passive health listener registered")
+                val requestedTypes = mutableSetOf<DataType<*, *>>()
+                val wantedTypes = listOf(
+                    DataType.HEART_RATE_BPM,
+                    DataType.STEPS_DAILY,
+                    DataType.CALORIES_DAILY
+                )
+
+                for (type in wantedTypes) {
+                    if (type in supported) {
+                        requestedTypes.add(type)
+                        Log.d(TAG, "✓ ${type.name} supported")
+                    } else {
+                        Log.w(TAG, "✗ ${type.name} not supported")
+                    }
+                }
+
+                if (requestedTypes.isEmpty()) {
+                    Log.e(TAG, "No health types supported!")
+                    return@launch
+                }
+
+                val config = PassiveListenerConfig.Builder()
+                    .setDataTypes(requestedTypes)
+                    .build()
+
+                passiveClient.setPassiveListenerCallback(config, callback)
+                Log.d(TAG, "Passive listener registered (${requestedTypes.size} types)")
+            } catch (e: Exception) {
+                Log.e(TAG, "Capability check failed, using defaults: ${e.message}")
+                // Fallback
+                val config = PassiveListenerConfig.Builder()
+                    .setDataTypes(setOf(DataType.HEART_RATE_BPM, DataType.STEPS_DAILY))
+                    .build()
+                passiveClient.setPassiveListenerCallback(config, callback)
+            }
+        }
     }
 
     fun stop() {
         passiveClient.clearPassiveListenerCallbackAsync()
-        Log.d(TAG, "Passive health listener cleared")
+        Log.d(TAG, "Passive listener cleared")
     }
 }

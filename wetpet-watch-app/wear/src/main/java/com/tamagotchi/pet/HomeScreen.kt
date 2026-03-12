@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -43,18 +44,50 @@ fun HomeScreen(
   val listState = rememberScalingLazyListState()
   val scope = rememberCoroutineScope()
 
+  // Track previous emotion to detect changes
+  var prevEmotion by remember { mutableStateOf(petStatusEngine.currentEmotion) }
+
+  // Initialize Health Connect reader for Fitbit-exclusive metrics
+  val healthConnectReader = remember { HealthConnectReader(context) }
+  LaunchedEffect(Unit) {
+    healthConnectReader.initialize()
+  }
+
+  // Periodically read Fitbit-exclusive metrics from Health Connect (every 5 min)
+  LaunchedEffect(Unit) {
+    while (true) {
+      delay(5 * 60 * 1000L) // 5 minutes
+      try {
+        val metrics = healthConnectReader.readLatestMetrics()
+        if (metrics != null) {
+          healthDataManager.updateFitbitMetrics(
+            hrv = metrics.hrv,
+            spO2 = metrics.spO2,
+            skinTemp = metrics.skinTemperature
+          )
+        }
+      } catch (_: Exception) { /* Health Connect may not be available */ }
+    }
+  }
+
   // Update engine every 2s
   var tick by remember { mutableIntStateOf(0) }
   LaunchedEffect(Unit) {
     while (true) {
       delay(2000)
       petStatusEngine.update(healthDataManager.snapshot())
-      petStateManager.saveEmotion(petStatusEngine.currentEmotion)
+      val newEmotion = petStatusEngine.currentEmotion
+      petStateManager.saveEmotion(newEmotion)
       tick++
-      if (tick % 15 == 0) {
+
+      // Trigger complication updates when emotion changes or every 30s
+      if (newEmotion != prevEmotion || tick % 15 == 0) {
+        prevEmotion = newEmotion
+        petStateManager.saveNeedsForComplications(petStatusEngine.currentNeeds)
+        petStateManager.requestComplicationUpdates()
         scope.launch {
           petStateManager.syncToPhone(
-            petStatusEngine.currentEmotion,
+            newEmotion,
             petStatusEngine.currentNeeds,
             healthDataManager
           )
@@ -72,8 +105,9 @@ fun HomeScreen(
   val calories = remember(tick) { healthDataManager.calories }
 
   val mood = remember(tick) { petStateManager.emotionToMood(emotion) }
-  val spriteRes = remember(theme, mood, tick) {
-    getSpriteResource(context, theme, mood, tick)
+  val petType = remember(tick) { petStateManager.petType }
+  val spriteRes = remember(theme, mood, petType, tick) {
+    getSpriteResource(context, petType, theme, mood, tick)
   }
 
   val themeColor = when (theme) {
@@ -119,6 +153,17 @@ fun HomeScreen(
   }
   val petYOffset = (bounceOffset * bounceAmplitude * 2 - bounceAmplitude).dp
 
+  // Glow pulse animation
+  val glowAlpha by infiniteTransition.animateFloat(
+    initialValue = 0.08f,
+    targetValue = 0.20f,
+    animationSpec = infiniteRepeatable(
+      animation = tween(2000, easing = FastOutSlowInEasing),
+      repeatMode = RepeatMode.Reverse
+    ),
+    label = "glow"
+  )
+
   // Battery
   val batteryPct = remember(tick) {
     val bm = context.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager
@@ -132,18 +177,19 @@ fun HomeScreen(
       .fillMaxSize()
       .background(Color(0xFF020206))
   ) {
-    // ── Scuba Arc Rings + Pet ──
+    // ── Hero: Arc Rings + Pet ──
     item(key = "hero") {
       Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier.size(180.dp)
+        modifier = Modifier.size(185.dp)
       ) {
-        // Draw scuba-style arc rings
+        // Draw scuba-style arc rings with glow
         ScubaArcRings(
           stepsProgress = (steps / 10000f).coerceIn(0f, 1f),
           batteryPct = batteryPct / 100f,
           themeColor = themeColor,
-          emotionColor = emotionColor
+          emotionColor = emotionColor,
+          glowAlpha = glowAlpha
         )
 
         // Pet sprite (animated)
@@ -155,10 +201,10 @@ fun HomeScreen(
             Image(
               painter = painterResource(id = spriteRes),
               contentDescription = "WetPet",
-              modifier = Modifier.size(72.dp)
+              modifier = Modifier.size(82.dp)
             )
           } else {
-            Text("🐾", fontSize = 40.sp)
+            Text("🐾", fontSize = 44.sp)
           }
         }
       }
@@ -166,69 +212,99 @@ fun HomeScreen(
 
     // ── Pet name + level ──
     item(key = "header") {
-      Column(horizontalAlignment = Alignment.CenterHorizontally) {
+      Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.padding(vertical = 2.dp)
+      ) {
         Text(
           text = petName,
           color = themeColor,
-          fontSize = 16.sp,
+          fontSize = 18.sp,
           fontWeight = FontWeight.Bold,
           fontFamily = FontFamily.Monospace,
           textAlign = TextAlign.Center
         )
         Text(
           text = "LV.${needs.level}  ·  ${needs.xpTotal}XP",
-          color = themeColor.copy(alpha = 0.5f),
+          color = themeColor.copy(alpha = 0.45f),
           fontSize = 10.sp,
           fontFamily = FontFamily.Monospace
         )
       }
     }
 
-    // ── Emotion status ──
+    // ── Emotion status card ──
     item(key = "emotion") {
-      Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.padding(vertical = 2.dp)
+      Box(
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(horizontal = 24.dp)
+          .clip(RoundedCornerShape(14.dp))
+          .background(emotionColor.copy(alpha = 0.08f))
+          .padding(vertical = 6.dp, horizontal = 12.dp)
       ) {
-        Text(
-          text = emotion.line1,
-          color = emotionColor,
-          fontSize = 13.sp,
-          fontWeight = FontWeight.Bold,
-          fontFamily = FontFamily.Monospace,
-          textAlign = TextAlign.Center
-        )
-        Text(
-          text = emotion.line2,
-          color = emotionColor.copy(alpha = 0.5f),
-          fontSize = 10.sp,
-          fontFamily = FontFamily.Monospace,
-          textAlign = TextAlign.Center
-        )
+        Column(
+          horizontalAlignment = Alignment.CenterHorizontally,
+          modifier = Modifier.fillMaxWidth()
+        ) {
+          Text(
+            text = emotion.line1,
+            color = emotionColor,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Monospace,
+            textAlign = TextAlign.Center
+          )
+          Text(
+            text = emotion.line2,
+            color = emotionColor.copy(alpha = 0.50f),
+            fontSize = 10.sp,
+            fontFamily = FontFamily.Monospace,
+            textAlign = TextAlign.Center
+          )
+        }
       }
     }
 
-    // ── Needs bars ──
+    // ── Needs bars (glassmorphic card, vertical layout) ──
     item(key = "needs") {
-      Row(
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+      Box(
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(horizontal = 28.dp, vertical = 4.dp)
+          .clip(RoundedCornerShape(14.dp))
+          .background(Color.White.copy(alpha = 0.04f))
+          .padding(horizontal = 12.dp, vertical = 8.dp)
       ) {
-        NeedBar("HNG", needs.hunger, Color(0xFFFFAA50))
-        NeedBar("HAP", needs.happiness, Color(0xFF50E6FF))
-        NeedBar("NRG", needs.energy, Color(0xFF50FF78))
+        Column(
+          modifier = Modifier.fillMaxWidth(),
+          verticalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+          CompactNeedRow("HNG", needs.hunger, Color(0xFFFFAA50))
+          CompactNeedRow("HAP", needs.happiness, Color(0xFF50E6FF))
+          CompactNeedRow("NRG", needs.energy, Color(0xFF50FF78))
+        }
       }
     }
 
-    // ── Quick stats ──
+    // ── Quick stats (glassmorphic card) ──
     item(key = "stats") {
-      Row(
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+      Box(
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(horizontal = 20.dp, vertical = 2.dp)
+          .clip(RoundedCornerShape(14.dp))
+          .background(Color.White.copy(alpha = 0.04f))
+          .padding(horizontal = 10.dp, vertical = 6.dp)
       ) {
-        StatChip("👟", "$steps", Color(0xFF50E6FF))
-        StatChip("♥", if (hr > 0) "$hr" else "--", Color(0xFFFF6464))
-        StatChip("🔥", "$calories", Color(0xFFFF9F50))
+        Row(
+          horizontalArrangement = Arrangement.SpaceEvenly,
+          modifier = Modifier.fillMaxWidth()
+        ) {
+          StatChip("👟", "$steps", Color(0xFF50E6FF))
+          StatChip("♥", if (hr > 0) "$hr" else "--", Color(0xFFFF6464))
+          StatChip("🔥", "$calories", Color(0xFFFF9F50))
+        }
       }
     }
 
@@ -236,17 +312,35 @@ fun HomeScreen(
     item(key = "customize_btn") {
       Chip(
         onClick = onNavigateToCustomize,
-        label = { Text("Customize", fontFamily = FontFamily.Monospace, fontSize = 12.sp) },
-        colors = ChipDefaults.chipColors(backgroundColor = themeColor.copy(alpha = 0.15f)),
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 1.dp)
+        label = {
+          Text(
+            "✦ Customize",
+            fontFamily = FontFamily.Monospace,
+            fontSize = 12.sp,
+            color = themeColor
+          )
+        },
+        colors = ChipDefaults.chipColors(backgroundColor = themeColor.copy(alpha = 0.10f)),
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(horizontal = 20.dp, vertical = 2.dp)
       )
     }
     item(key = "stats_btn") {
       Chip(
         onClick = onNavigateToStats,
-        label = { Text("Stats & Health", fontFamily = FontFamily.Monospace, fontSize = 12.sp) },
-        colors = ChipDefaults.chipColors(backgroundColor = Color(0xFF50E6FF).copy(alpha = 0.15f)),
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 1.dp)
+        label = {
+          Text(
+            "📊 Stats & Health",
+            fontFamily = FontFamily.Monospace,
+            fontSize = 12.sp,
+            color = Color(0xFF50E6FF)
+          )
+        },
+        colors = ChipDefaults.chipColors(backgroundColor = Color(0xFF50E6FF).copy(alpha = 0.10f)),
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(horizontal = 20.dp, vertical = 2.dp)
       )
     }
   }
@@ -254,13 +348,15 @@ fun HomeScreen(
 
 /**
  * Scuba-style concentric arc rings drawn with Canvas.
+ * Includes subtle glow pulse on the emotion ring.
  */
 @Composable
 private fun ScubaArcRings(
   stepsProgress: Float,
   batteryPct: Float,
   themeColor: Color,
-  emotionColor: Color
+  emotionColor: Color,
+  glowAlpha: Float
 ) {
   Canvas(modifier = Modifier.fillMaxSize()) {
     val cx = size.width / 2
@@ -273,13 +369,13 @@ private fun ScubaArcRings(
 
     // Background track
     drawArc(
-      color = Color(0x1550E6FF),
+      color = Color(0x1250E6FF),
       startAngle = -225f,
       sweepAngle = 270f,
       useCenter = false,
       topLeft = outerOffset,
       size = outerRect,
-      style = Stroke(width = 6f, cap = StrokeCap.Round)
+      style = Stroke(width = 7f, cap = StrokeCap.Round)
     )
     // Fill
     drawArc(
@@ -289,31 +385,31 @@ private fun ScubaArcRings(
       useCenter = false,
       topLeft = outerOffset,
       size = outerRect,
-      style = Stroke(width = 6f, cap = StrokeCap.Round)
+      style = Stroke(width = 7f, cap = StrokeCap.Round)
     )
 
     // Tick marks at 25%, 50%, 75%
     for (pct in listOf(0.25f, 0.5f, 0.75f)) {
       val angle = -225f + 270f * pct
       drawArc(
-        color = Color(0x30FFFFFF),
+        color = Color(0x25FFFFFF),
         startAngle = angle - 1f,
         sweepAngle = 2f,
         useCenter = false,
         topLeft = outerOffset,
         size = outerRect,
-        style = Stroke(width = 10f)
+        style = Stroke(width = 11f)
       )
     }
 
     // ── Inner ring: Battery (top 90°) ──
-    val innerSize = outerSize - 20f
+    val innerSize = outerSize - 22f
     val innerRect = Size(innerSize, innerSize)
     val innerOffset = Offset((size.width - innerSize) / 2, (size.height - innerSize) / 2)
 
     // Background track
     drawArc(
-      color = Color(0x1050FF78),
+      color = Color(0x0E50FF78),
       startAngle = -135f,
       sweepAngle = 90f,
       useCenter = false,
@@ -333,55 +429,66 @@ private fun ScubaArcRings(
       style = Stroke(width = 4f, cap = StrokeCap.Round)
     )
 
-    // ── Emotion glow ring (subtle) ──
-    val glowSize = innerSize - 16f
+    // ── Emotion glow ring (pulsing) ──
+    val glowSize = innerSize - 18f
     val glowRect = Size(glowSize, glowSize)
     val glowOffset = Offset((size.width - glowSize) / 2, (size.height - glowSize) / 2)
 
     drawArc(
-      color = emotionColor.copy(alpha = 0.15f),
+      color = emotionColor.copy(alpha = glowAlpha),
       startAngle = 0f,
       sweepAngle = 360f,
       useCenter = false,
       topLeft = glowOffset,
       size = glowRect,
-      style = Stroke(width = 2f)
+      style = Stroke(width = 2.5f)
     )
   }
 }
 
 @Composable
-private fun NeedBar(label: String, value: Float, color: Color) {
+private fun CompactNeedRow(label: String, value: Float, color: Color) {
   val barColor = when {
     value > 0.7f -> Color(0xFF50FF78)
     value > 0.3f -> Color(0xFFFFE650)
     else -> Color(0xFFFF4646)
   }
-  Column(
-    horizontalAlignment = Alignment.CenterHorizontally,
-    modifier = Modifier.width(55.dp)
+  Row(
+    verticalAlignment = Alignment.CenterVertically,
+    modifier = Modifier.fillMaxWidth()
   ) {
     Text(
       text = label,
-      color = color.copy(alpha = 0.5f),
+      color = color.copy(alpha = 0.60f),
       fontSize = 9.sp,
-      fontFamily = FontFamily.Monospace
+      fontFamily = FontFamily.Monospace,
+      fontWeight = FontWeight.Bold,
+      modifier = Modifier.width(32.dp)
     )
     Box(
       modifier = Modifier
-        .fillMaxWidth()
-        .height(4.dp)
-        .clip(RoundedCornerShape(2.dp))
+        .weight(1f)
+        .height(5.dp)
+        .clip(RoundedCornerShape(3.dp))
         .background(Color.White.copy(alpha = 0.06f))
     ) {
       Box(
         modifier = Modifier
           .fillMaxWidth(value.coerceIn(0f, 1f))
           .fillMaxHeight()
-          .clip(RoundedCornerShape(2.dp))
+          .clip(RoundedCornerShape(3.dp))
           .background(barColor)
       )
     }
+    Spacer(Modifier.width(6.dp))
+    Text(
+      text = "${(value * 100).toInt()}%",
+      color = barColor.copy(alpha = 0.8f),
+      fontSize = 9.sp,
+      fontFamily = FontFamily.Monospace,
+      fontWeight = FontWeight.Bold,
+      modifier = Modifier.width(30.dp)
+    )
   }
 }
 
@@ -390,15 +497,15 @@ private fun StatChip(icon: String, value: String, color: Color) {
   Column(
     horizontalAlignment = Alignment.CenterHorizontally,
     modifier = Modifier
-      .clip(RoundedCornerShape(8.dp))
-      .background(color.copy(alpha = 0.08f))
-      .padding(horizontal = 8.dp, vertical = 3.dp)
+      .clip(RoundedCornerShape(10.dp))
+      .background(color.copy(alpha = 0.06f))
+      .padding(horizontal = 10.dp, vertical = 4.dp)
   ) {
-    Text(text = icon, fontSize = 11.sp)
+    Text(text = icon, fontSize = 12.sp)
     Text(
       text = value,
       color = color,
-      fontSize = 12.sp,
+      fontSize = 13.sp,
       fontWeight = FontWeight.Bold,
       fontFamily = FontFamily.Monospace
     )
@@ -406,23 +513,26 @@ private fun StatChip(icon: String, value: String, color: Color) {
 }
 
 /**
- * Resolve sprite drawable resource ID.
+ * Resolve sprite drawable resource ID based on pet type, theme, mood, and frame.
  */
 private fun getSpriteResource(
   context: android.content.Context,
+  petType: PetType,
   theme: PetColorTheme,
   mood: PetMood,
   tick: Int
 ): Int {
+  val prefix = when (petType) {
+    PetType.BLOB -> "pet"
+    PetType.CAT -> "cat"
+    PetType.DOG -> "dog"
+  }
   val suffix = "_${theme.name.lowercase()}"
   val frame = if (tick % 2 == 0) "1" else "2"
   val name = when (mood) {
-    PetMood.HAPPY -> "pet_idle_$frame$suffix"
-    PetMood.CONTENT -> "pet_idle_$frame$suffix"
-    PetMood.TIRED -> "pet_sleep$suffix"
-    PetMood.HUNGRY -> "pet_sleep$suffix"
-    PetMood.CELEBRATING -> "pet_idle_$frame$suffix"
-    PetMood.SLEEPING -> "pet_sleep$suffix"
+    PetMood.HAPPY, PetMood.CONTENT, PetMood.CELEBRATING -> "${prefix}_idle_$frame$suffix"
+    PetMood.TIRED, PetMood.HUNGRY -> "${prefix}_sleep$suffix"
+    PetMood.SLEEPING -> "${prefix}_sleep$suffix"
   }
   return context.resources.getIdentifier(name, "drawable", context.packageName)
 }

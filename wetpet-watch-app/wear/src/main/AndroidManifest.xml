@@ -7,6 +7,11 @@
     <uses-permission android:name="android.permission.BODY_SENSORS" />
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
     <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Health Connect permissions (for Fitbit-exclusive metrics) -->
+    <uses-permission android:name="android.permission.health.READ_HEART_RATE_VARIABILITY" />
+    <uses-permission android:name="android.permission.health.READ_OXYGEN_SATURATION" />
 
     <application
         android:allowBackup="true"
@@ -37,6 +42,79 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Background passive health data service -->
+        <service
+            android:name=".PassiveDataService"
+            android:permission="com.google.android.wearable.healthservices.permission.PASSIVE_DATA_BINDING"
+            android:exported="true" />
+
+        <!-- Boot receiver for re-registering passive listener -->
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Complication: serves WetPet sprite to the watch face -->
+        <service
+            android:name=".PetComplicationService"
+            android:exported="true"
+            android:label="WetPet"
+            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+            <intent-filter>
+                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+            </intent-filter>
+            <meta-data
+                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+                android:value="SMALL_IMAGE" />
+            <meta-data
+                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+                android:value="60" />
+        </service>
+
+        <!-- Complication: serves WetPet emotion status text to the watch face -->
+        <service
+            android:name=".EmotionComplicationService"
+            android:exported="true"
+            android:label="WetPet Mood"
+            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+            <intent-filter>
+                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+            </intent-filter>
+            <meta-data
+                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+                android:value="SHORT_TEXT" />
+            <meta-data
+                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+                android:value="30" />
+        </service>
+
+        <!-- Complication: serves WetPet needs (hunger/happiness/energy) to the watch face -->
+        <service
+            android:name=".NeedsComplicationService"
+            android:exported="true"
+            android:label="WetPet Needs"
+            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+            <intent-filter>
+                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+            </intent-filter>
+            <meta-data
+                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+                android:value="SHORT_TEXT,RANGED_VALUE" />
+            <meta-data
+                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+                android:value="30" />
+        </service>
+
+        <!-- ContentProvider: exposes pet config to the watchface APK -->
+        <provider
+            android:name=".PetConfigProvider"
+            android:authorities="com.tamagotchi.pet.config"
+            android:exported="true"
+            android:grantUriPermissions="true" />
 
     </application>
 </manifest>

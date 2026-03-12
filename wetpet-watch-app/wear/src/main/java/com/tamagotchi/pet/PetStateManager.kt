@@ -1,8 +1,10 @@
 package com.tamagotchi.pet
 
+import android.content.ComponentName
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester
 import com.google.android.gms.wearable.PutDataMapRequest
 import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.tasks.await
@@ -34,8 +36,8 @@ class PetStateManager(private val context: Context) {
 
   var petType: PetType
     get() {
-      val name = prefs.getString("pet_type", "BLOB") ?: "BLOB"
-      return try { PetType.valueOf(name) } catch (_: Exception) { PetType.BLOB }
+      val name = prefs.getString("pet_type", "DOG") ?: "DOG"
+      return try { PetType.valueOf(name) } catch (_: Exception) { PetType.DOG }
     }
     set(value) = prefs.edit().putString("pet_type", value.name).apply()
 
@@ -68,6 +70,25 @@ class PetStateManager(private val context: Context) {
       .putString(DataLayerPaths.KEY_EMOTION, emotion.name)
       .putString(DataLayerPaths.KEY_MOOD, emotionToMood(emotion).name)
       .apply()
+  }
+
+  /** Save current needs snapshot so complication services can read them. */
+  fun saveNeedsForComplications(needs: PetNeeds) {
+    PetNeeds.save(context, needs)
+  }
+
+  /** Push update to all custom complication services (emotion + needs + pet sprite). */
+  fun requestComplicationUpdates() {
+    try {
+      EmotionComplicationService.requestUpdate(context)
+      NeedsComplicationService.requestUpdate(context)
+      // Also refresh the pet sprite complication
+      val petComponent = ComponentName(context, PetComplicationService::class.java)
+      ComplicationDataSourceUpdateRequester.create(context, petComponent)
+        .requestUpdateAll()
+    } catch (e: Exception) {
+      Log.e(TAG, "Complication update failed: ${e.message}")
+    }
   }
 
   /**

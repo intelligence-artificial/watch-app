@@ -1,283 +1,338 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- WetPet — Scuba Dive Computer Watch Face (WFF v2) -->
-<WatchFace width="450" height="450">
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    WetPet Watch Face — v6 (tight radial layout)
+    Display: 384×384 circular AMOLED (Pixel Watch 2)
 
-    <UserConfigurations>
-        <ListConfiguration id="PET_COLOR" displayName="Pet Color" defaultValue="green">
-            <ListOption id="green" displayName="Neon Green" />
-            <ListOption id="blue" displayName="Neon Blue" />
-            <ListOption id="pink" displayName="Neon Pink" />
-            <ListOption id="yellow" displayName="Neon Yellow" />
-        </ListConfiguration>
-    </UserConfigurations>
+    Layout from center outward:
+      1. Pet sprite (center, 80×80)
+      2. Emotion text (just below pet)
+      3. Time (large, below emotion)
+      4. Date + wellness (compact bottom zone)
+      5. Data arcs: steps (top), battery (right), HR (left)
+      6. Complication values inside arcs
+      7. Thin bezel ring
+-->
+<WatchFace width="384" height="384">
 
-    <Scene backgroundColor="#020206">
+    <Metadata key="CLOCK_TYPE" value="DIGITAL"/>
+    <Metadata key="PREVIEW_TIME" value="10:08:32"/>
 
-        <!-- ══════════════════════════════════════════ -->
-        <!--  OUTER RING: Steps / Daily Goal (270°)    -->
-        <!-- ══════════════════════════════════════════ -->
-        <PartDraw x="0" y="0" width="450" height="450">
-            <Variant mode="ambient" target="alpha" value="0"/>
-            <!-- Background track -->
-            <Arc centerX="225" centerY="225" width="430" height="430"
-                 startAngle="-225" endAngle="45" thickness="8">
-                <Stroke color="#0A50E6FF"/>
+    <Scene backgroundColor="#ff000000">
+
+        <!-- ═══════════════════════════════════════ -->
+        <!--  THIN OUTER BEZEL                      -->
+        <!-- ═══════════════════════════════════════ -->
+        <PartDraw x="0" y="0" width="384" height="384">
+            <Arc centerX="192" centerY="192" width="380" height="380"
+                 startAngle="0" endAngle="360" thickness="3">
+                <Stroke color="#ff0D0D18"/>
             </Arc>
-            <!-- Fill arc (steps / 10000 * 270°) -->
-            <Arc centerX="225" centerY="225" width="430" height="430"
-                 startAngle="-225" endAngle="-225 + (([STEP_COUNT] / 10000) * 270)" thickness="8"
-                 direction="CLOCKWISE">
-                <Stroke color="#50E6FF" cap="ROUND"/>
-            </Arc>
-            <!-- 25% tick mark -->
-            <Arc centerX="225" centerY="225" width="430" height="430"
-                 startAngle="-157.5" endAngle="-155.5" thickness="12">
-                <Stroke color="#1AFFFFFF"/>
-            </Arc>
-            <!-- 50% tick mark -->
-            <Arc centerX="225" centerY="225" width="430" height="430"
-                 startAngle="-90" endAngle="-88" thickness="12">
-                <Stroke color="#1AFFFFFF"/>
-            </Arc>
-            <!-- 75% tick mark -->
-            <Arc centerX="225" centerY="225" width="430" height="430"
-                 startAngle="-22.5" endAngle="-20.5" thickness="12">
-                <Stroke color="#1AFFFFFF"/>
+            <!-- 12 o'clock accent -->
+            <Arc centerX="192" centerY="192" width="380" height="380"
+                 startAngle="-92" endAngle="-88" thickness="3">
+                <Stroke color="#ff00E5FF"/>
             </Arc>
         </PartDraw>
 
-        <!-- ══════════════════════════════════════════ -->
-        <!--  SECOND RING: Battery (top 90°)           -->
-        <!-- ══════════════════════════════════════════ -->
-        <PartDraw x="0" y="0" width="450" height="450">
-            <Variant mode="ambient" target="alpha" value="80"/>
-            <!-- Background track -->
-            <Arc centerX="225" centerY="225" width="400" height="400"
-                 startAngle="-135" endAngle="-45" thickness="6">
-                <Stroke color="#0A50FF78"/>
+        <!-- ═══════════════════════════════════════ -->
+        <!--  STEPS ARC — top (10→2 o'clock, 120°)  -->
+        <!--  Cyan, outermost data ring              -->
+        <!-- ═══════════════════════════════════════ -->
+        <PartDraw x="0" y="0" width="384" height="384">
+            <Variant mode="AMBIENT" target="alpha" value="35"/>
+            <Arc centerX="192" centerY="192" width="362" height="362"
+                 startAngle="-150" endAngle="-30" thickness="10">
+                <Stroke color="#1500E5FF" cap="ROUND"/>
             </Arc>
-            <!-- Fill arc -->
-            <Arc centerX="225" centerY="225" width="400" height="400"
-                 startAngle="-135" endAngle="-135 + ([BATTERY_PERCENT] * 0.9)" thickness="6"
-                 direction="CLOCKWISE">
-                <Condition>
-                    <Expression>[BATTERY_PERCENT] le 30</Expression>
-                    <Stroke color="#FF4646" cap="ROUND"/>
-                    <Default>
-                        <Stroke color="#50FF78" cap="ROUND"/>
-                    </Default>
-                </Condition>
+            <Arc centerX="192" centerY="192" width="362" height="362"
+                 startAngle="-150" endAngle="-30" thickness="10">
+                <Stroke color="#9900E5FF" cap="ROUND"/>
             </Arc>
         </PartDraw>
 
-        <!-- ══════════════════════════════════════════ -->
-        <!--  SECONDS RING (innermost, full 360°)      -->
-        <!-- ══════════════════════════════════════════ -->
-        <PartDraw x="0" y="0" width="450" height="450">
-            <Variant mode="ambient" target="alpha" value="0"/>
-            <Arc centerX="225" centerY="225" width="340" height="340"
-                 startAngle="-90" endAngle="-90 + [SECOND] * 6" thickness="3">
-                <Stroke color="#2050FF78"/>
+        <!-- ═══════════════════════════════════════ -->
+        <!--  BATTERY ARC — right (2→5, 90°)        -->
+        <!--  Green                                  -->
+        <!-- ═══════════════════════════════════════ -->
+        <PartDraw x="0" y="0" width="384" height="384">
+            <Arc centerX="192" centerY="192" width="362" height="362"
+                 startAngle="-25" endAngle="60" thickness="10">
+                <Stroke color="#1550FF78" cap="ROUND"/>
+            </Arc>
+            <Arc centerX="192" centerY="192" width="362" height="362"
+                 startAngle="-25"
+                 endAngle="-25 + clamp([BATTERY_PERCENT], 0, 100) * 0.85"
+                 thickness="10">
+                <Stroke color="#9950FF78" cap="ROUND"/>
             </Arc>
         </PartDraw>
 
-        <!-- ══════════════════════════════════════════ -->
-        <!--  BATTERY % label (top center)             -->
-        <!-- ══════════════════════════════════════════ -->
-        <PartText x="225" y="48" width="100" height="20">
-            <Variant mode="ambient" target="alpha" value="100"/>
+        <!-- ═══════════════════════════════════════ -->
+        <!--  HR ARC — left (7→10, 90°)             -->
+        <!--  Pink                                   -->
+        <!-- ═══════════════════════════════════════ -->
+        <PartDraw x="0" y="0" width="384" height="384">
+            <Variant mode="AMBIENT" target="alpha" value="35"/>
+            <Arc centerX="192" centerY="192" width="362" height="362"
+                 startAngle="120" endAngle="210" thickness="10">
+                <Stroke color="#15FF5580" cap="ROUND"/>
+            </Arc>
+            <Arc centerX="192" centerY="192" width="362" height="362"
+                 startAngle="120" endAngle="210" thickness="10">
+                <Stroke color="#99FF5580" cap="ROUND"/>
+            </Arc>
+        </PartDraw>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!--  BOTTOM ARC — ambient zone (5→7, 60°)  -->
+        <!-- ═══════════════════════════════════════ -->
+        <PartDraw x="0" y="0" width="384" height="384">
+            <Arc centerX="192" centerY="192" width="362" height="362"
+                 startAngle="65" endAngle="115" thickness="10">
+                <Stroke color="#0800E5FF" cap="ROUND"/>
+            </Arc>
+        </PartDraw>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!--  DATA VALUES (inside each arc zone)    -->
+        <!-- ═══════════════════════════════════════ -->
+
+        <!-- Steps (top center, inside cyan arc) -->
+        <ComplicationSlot
+            x="142" y="14" width="100" height="18"
+            slotId="1"
+            displayName="Steps"
+            supportedTypes="SHORT_TEXT EMPTY">
+            <DefaultProviderPolicy
+                defaultSystemProvider="STEP_COUNT"
+                defaultSystemProviderType="SHORT_TEXT"/>
+            <Complication type="SHORT_TEXT">
+                <ShortText x="0" y="0" width="100" height="18">
+                    <Variant mode="AMBIENT" target="alpha" value="0"/>
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="11" color="#BB00E5FF" weight="BOLD"/>
+                    </Text>
+                </ShortText>
+            </Complication>
+            <Complication type="EMPTY">
+                <PartText x="0" y="0" width="100" height="18">
+                    <Variant mode="AMBIENT" target="alpha" value="0"/>
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="10" color="#4000E5FF">
+                            <Template>0</Template>
+                        </Font>
+                    </Text>
+                </PartText>
+            </Complication>
+        </ComplicationSlot>
+
+        <!-- Battery % (right side, inside green arc) -->
+        <PartText x="310" y="170" width="56" height="18">
             <Text align="CENTER">
-                <Font family="SYNC-TO-DEVICE" size="13" color="#50FF78" />
-                <Variant mode="ambient" target="color" value="#555555" />
-                <Template>⚡%d%%
-                    <Parameter expression="[BATTERY_PERCENT]" />
-                </Template>
+                <Font family="SYNC_TO_DEVICE" size="11" color="#BB50FF78" weight="BOLD">
+                    <Template>%d%%
+                        <Parameter expression="[BATTERY_PERCENT]"/>
+                    </Template>
+                </Font>
             </Text>
+            <Variant mode="AMBIENT" target="alpha" value="50"/>
         </PartText>
 
-        <!-- ══════════════════════════════════════════ -->
-        <!--  STEP COUNT label (bottom of outer ring)  -->
-        <!-- ══════════════════════════════════════════ -->
-        <PartText x="225" y="410" width="150" height="20">
-            <Variant mode="ambient" target="alpha" value="0"/>
+        <!-- HR (left side, inside pink arc) -->
+        <ComplicationSlot
+            x="18" y="170" width="56" height="18"
+            slotId="2"
+            displayName="Heart Rate"
+            supportedTypes="SHORT_TEXT EMPTY">
+            <DefaultProviderPolicy
+                defaultSystemProvider="HEART_RATE"
+                defaultSystemProviderType="SHORT_TEXT"/>
+            <Complication type="SHORT_TEXT">
+                <ShortText x="0" y="0" width="56" height="18">
+                    <Variant mode="AMBIENT" target="alpha" value="0"/>
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="11" color="#BBFF5580" weight="BOLD"/>
+                    </Text>
+                </ShortText>
+            </Complication>
+            <Complication type="EMPTY">
+                <PartText x="0" y="0" width="56" height="18">
+                    <Variant mode="AMBIENT" target="alpha" value="0"/>
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="10" color="#40FF5580">
+                            <Template>♥</Template>
+                        </Font>
+                    </Text>
+                </PartText>
+            </Complication>
+        </ComplicationSlot>
+
+        <!-- Seconds dot -->
+        <PartDraw x="0" y="0" width="384" height="384">
+            <Variant mode="AMBIENT" target="alpha" value="0"/>
+            <Arc centerX="192" centerY="192" width="362" height="362"
+                 startAngle="-90 + [SECOND] * 6 - 1"
+                 endAngle="-90 + [SECOND] * 6 + 1"
+                 thickness="4">
+                <Stroke color="#ff00E5FF" cap="ROUND"/>
+            </Arc>
+        </PartDraw>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!--  INNER GLOW RING (decorative)          -->
+        <!-- ═══════════════════════════════════════ -->
+        <PartDraw x="0" y="0" width="384" height="384">
+            <Arc centerX="192" centerY="192" width="280" height="280"
+                 startAngle="0" endAngle="360" thickness="1">
+                <Stroke color="#08ffffff"/>
+            </Arc>
+        </PartDraw>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!--  PET SPRITE — hero center               -->
+        <!--  Direct PartImage (no complication)      -->
+        <!-- ═══════════════════════════════════════ -->
+
+        <!-- Interactive: dog sprite -->
+        <PartImage x="152" y="72" width="80" height="80">
+            <Variant mode="AMBIENT" target="alpha" value="0"/>
+            <Image resource="dog_idle_1_green"/>
+        </PartImage>
+
+        <!-- AOD pet (dimmed grayscale) -->
+        <PartImage x="152" y="72" width="80" height="80">
+            <Variant mode="AMBIENT" target="alpha" value="100"/>
+            <Variant mode="INTERACTIVE" target="alpha" value="0"/>
+            <Image resource="dog_idle_aod"/>
+        </PartImage>
+
+        <!-- App launch tap zone (overlapping pet) -->
+        <Group x="152" y="72" width="80" height="80">
+            <Variant mode="AMBIENT" target="alpha" value="0"/>
+            <Launch target="com.wetpet.watch"/>
+        </Group>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!--  EMOTION TEXT (just below pet)           -->
+        <!-- ═══════════════════════════════════════ -->
+        <ComplicationSlot
+            x="67" y="155" width="250" height="20"
+            slotId="3"
+            displayName="mood"
+            isConfigurable="false"
+            supportedTypes="SHORT_TEXT EMPTY"
+            defaultDataSource="com.wetpet.watch/com.tamagotchi.pet.EmotionComplicationService"
+            defaultDataSourceType="SHORT_TEXT">
+            <DefaultProviderPolicy
+                defaultSystemProvider="EMPTY"
+                defaultSystemProviderType="SHORT_TEXT"/>
+            <Complication type="SHORT_TEXT">
+                <ShortText x="0" y="0" width="250" height="20">
+                    <Variant mode="AMBIENT" target="alpha" value="0"/>
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="12" color="#CC78FFA0" weight="BOLD"/>
+                    </Text>
+                </ShortText>
+            </Complication>
+            <Complication type="EMPTY">
+                <PartText x="0" y="0" width="250" height="20">
+                    <Variant mode="AMBIENT" target="alpha" value="0"/>
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="10" color="#4478FFA0">
+                            <Template>· · ·</Template>
+                        </Font>
+                    </Text>
+                </PartText>
+            </Complication>
+        </ComplicationSlot>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!--  DIGITAL CLOCK (primary, large)         -->
+        <!-- ═══════════════════════════════════════ -->
+        <DigitalClock x="0" y="0" width="384" height="384">
+            <TimeText format="h:mm" hourFormat="SYNC_TO_DEVICE"
+                      align="CENTER"
+                      x="0" y="178" width="384" height="55"
+                      alpha="255">
+                <Variant mode="AMBIENT" target="alpha" value="0"/>
+                <Font family="SYNC_TO_DEVICE" size="48" weight="BOLD"
+                      color="#ff00E5FF"/>
+            </TimeText>
+            <TimeText format="h:mm" hourFormat="SYNC_TO_DEVICE"
+                      align="CENTER"
+                      x="0" y="178" width="384" height="55"
+                      alpha="0">
+                <Variant mode="AMBIENT" target="alpha" value="255"/>
+                <Font family="SYNC_TO_DEVICE" size="48" weight="THIN"
+                      color="#ffBBBBBB"/>
+            </TimeText>
+        </DigitalClock>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!--  DATE (compact, below time)             -->
+        <!-- ═══════════════════════════════════════ -->
+        <PartText x="0" y="236" width="384" height="16">
             <Text align="CENTER">
-                <Font family="SYNC-TO-DEVICE" size="13" color="#50E6FF" />
-                <Template>👟 %d steps
-                    <Parameter expression="[STEP_COUNT]" />
-                </Template>
+                <Font family="SYNC_TO_DEVICE" size="11" color="#ff3A3A48">
+                    <Template>%s  %d/%d
+                        <Parameter expression="[DAY_OF_WEEK_S]"/>
+                        <Parameter expression="[MONTH_0_11] + 1"/>
+                        <Parameter expression="[DAY_OF_MONTH] + 1"/>
+                    </Template>
+                </Font>
             </Text>
+            <Variant mode="AMBIENT" target="alpha" value="70"/>
         </PartText>
 
-        <!-- ══════════════════════════════════════════ -->
-        <!--  THE WETPET (CENTER HERO)                 -->
-        <!--  Sprite switches based on steps + time    -->
-        <!-- ══════════════════════════════════════════ -->
+        <!-- ═══════════════════════════════════════ -->
+        <!--  WELLNESS NEEDS (below date)            -->
+        <!-- ═══════════════════════════════════════ -->
+        <ComplicationSlot
+            x="102" y="256" width="180" height="18"
+            slotId="4"
+            displayName="wellness"
+            isConfigurable="false"
+            supportedTypes="SHORT_TEXT RANGED_VALUE EMPTY"
+            defaultDataSource="com.wetpet.watch/com.tamagotchi.pet.NeedsComplicationService"
+            defaultDataSourceType="SHORT_TEXT">
+            <DefaultProviderPolicy
+                defaultSystemProvider="EMPTY"
+                defaultSystemProviderType="SHORT_TEXT"/>
+            <Complication type="SHORT_TEXT">
+                <ShortText x="0" y="0" width="180" height="18">
+                    <Variant mode="AMBIENT" target="alpha" value="0"/>
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="10" color="#99FFE664" weight="BOLD"/>
+                    </Text>
+                </ShortText>
+            </Complication>
+            <Complication type="RANGED_VALUE">
+                <ShortText x="0" y="0" width="180" height="18">
+                    <Variant mode="AMBIENT" target="alpha" value="0"/>
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="10" color="#99FFE664" weight="BOLD"/>
+                    </Text>
+                </ShortText>
+            </Complication>
+            <Complication type="EMPTY">
+                <PartText x="0" y="0" width="180" height="18">
+                    <Variant mode="AMBIENT" target="alpha" value="0"/>
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="9" color="#33FFE664">
+                            <Template>· · ·</Template>
+                        </Font>
+                    </Text>
+                </PartText>
+            </Complication>
+        </ComplicationSlot>
 
-        <Condition>
-            <!-- Night mode: Sleeping (22:00 - 05:00) -->
-            <Expression>[HOUR_0_23] ge 22 or [HOUR_0_23] le 5</Expression>
-
-            <PartImage x="153" y="140" width="144" height="144">
-                <Variant mode="ambient" target="image" value="pet_sleep_aod" />
-                <Image resource="pet_sleep_green" />
-                <Variant configuration="PET_COLOR" optionId="blue" target="image" value="pet_sleep_blue" />
-                <Variant configuration="PET_COLOR" optionId="pink" target="image" value="pet_sleep_pink" />
-                <Variant configuration="PET_COLOR" optionId="yellow" target="image" value="pet_sleep_yellow" />
-            </PartImage>
-            <!-- Sleepy status text -->
-            <PartText x="225" y="290" width="200" height="20">
-                <Variant mode="ambient" target="alpha" value="0"/>
-                <Text align="CENTER">
-                    <Font family="SYNC-TO-DEVICE" size="14" color="#6060A0" />
-                    <Template>sleepy time... Zzz</Template>
-                </Text>
-            </PartText>
-
-            <Default>
-                <!-- Daytime: check step count for mood -->
-                <Condition>
-                    <!-- HAPPY: steps > 8000 -->
-                    <Expression>[STEP_COUNT] ge 8000</Expression>
-
-                    <!-- Happy pet with bounce -->
-                    <Group x="153" y="140" width="144" height="144">
-                        <Variant mode="ambient" target="alpha" value="0" />
-                        <Transform target="y" value="sin([SECOND] * 4) * 5" />
-                        <Condition>
-                            <Expression>([SECOND] % 2) eq 0</Expression>
-                            <PartImage x="0" y="0" width="144" height="144">
-                                <Image resource="pet_idle_1_green" />
-                                <Variant configuration="PET_COLOR" optionId="blue" target="image" value="pet_idle_1_blue" />
-                                <Variant configuration="PET_COLOR" optionId="pink" target="image" value="pet_idle_1_pink" />
-                                <Variant configuration="PET_COLOR" optionId="yellow" target="image" value="pet_idle_1_yellow" />
-                            </PartImage>
-                            <Default>
-                                <PartImage x="0" y="0" width="144" height="144">
-                                    <Image resource="pet_idle_2_green" />
-                                    <Variant configuration="PET_COLOR" optionId="blue" target="image" value="pet_idle_2_blue" />
-                                    <Variant configuration="PET_COLOR" optionId="pink" target="image" value="pet_idle_2_pink" />
-                                    <Variant configuration="PET_COLOR" optionId="yellow" target="image" value="pet_idle_2_yellow" />
-                                </PartImage>
-                            </Default>
-                        </Condition>
-                    </Group>
-                    <!-- Happy status text -->
-                    <PartText x="225" y="290" width="200" height="20">
-                        <Variant mode="ambient" target="alpha" value="0"/>
-                        <Text align="CENTER">
-                            <Font family="SYNC-TO-DEVICE" size="14" color="#50E6FF" />
-                            <Template>great day! ♥</Template>
-                        </Text>
-                    </PartText>
-
-                    <Default>
-                        <Condition>
-                            <!-- SAD: steps < 1000 after 6pm -->
-                            <Expression>[STEP_COUNT] lt 1000 and [HOUR_0_23] ge 18</Expression>
-
-                            <!-- Sad pet (slow bounce) -->
-                            <Group x="153" y="140" width="144" height="144">
-                                <Variant mode="ambient" target="alpha" value="0" />
-                                <Transform target="y" value="sin([SECOND]) * 1" />
-                                <PartImage x="0" y="0" width="144" height="144">
-                                    <Image resource="pet_sleep_green" />
-                                    <Variant configuration="PET_COLOR" optionId="blue" target="image" value="pet_sleep_blue" />
-                                    <Variant configuration="PET_COLOR" optionId="pink" target="image" value="pet_sleep_pink" />
-                                    <Variant configuration="PET_COLOR" optionId="yellow" target="image" value="pet_sleep_yellow" />
-                                </PartImage>
-                            </Group>
-                            <PartText x="225" y="290" width="200" height="20">
-                                <Variant mode="ambient" target="alpha" value="0"/>
-                                <Text align="CENTER">
-                                    <Font family="SYNC-TO-DEVICE" size="14" color="#5070A0" />
-                                    <Template>feeling down... move!</Template>
-                                </Text>
-                            </PartText>
-
-                            <Default>
-                                <!-- IDLE: normal animated pet -->
-                                <Group x="153" y="140" width="144" height="144">
-                                    <Variant mode="ambient" target="alpha" value="0" />
-                                    <Transform target="y" value="sin([SECOND] * 3) * 3" />
-                                    <Condition>
-                                        <Expression>([SECOND] % 2) eq 0</Expression>
-                                        <PartImage x="0" y="0" width="144" height="144">
-                                            <Image resource="pet_idle_1_green" />
-                                            <Variant configuration="PET_COLOR" optionId="blue" target="image" value="pet_idle_1_blue" />
-                                            <Variant configuration="PET_COLOR" optionId="pink" target="image" value="pet_idle_1_pink" />
-                                            <Variant configuration="PET_COLOR" optionId="yellow" target="image" value="pet_idle_1_yellow" />
-                                        </PartImage>
-                                        <Default>
-                                            <PartImage x="0" y="0" width="144" height="144">
-                                                <Image resource="pet_idle_2_green" />
-                                                <Variant configuration="PET_COLOR" optionId="blue" target="image" value="pet_idle_2_blue" />
-                                                <Variant configuration="PET_COLOR" optionId="pink" target="image" value="pet_idle_2_pink" />
-                                                <Variant configuration="PET_COLOR" optionId="yellow" target="image" value="pet_idle_2_yellow" />
-                                            </PartImage>
-                                        </Default>
-                                    </Condition>
-                                </Group>
-                                <!-- Idle status text -->
-                                <PartText x="225" y="290" width="200" height="20">
-                                    <Variant mode="ambient" target="alpha" value="0"/>
-                                    <Text align="CENTER">
-                                        <Font family="SYNC-TO-DEVICE" size="14" color="#78C890" />
-                                        <Template>all good ♪</Template>
-                                    </Text>
-                                </PartText>
-
-                                <!-- AOD: static outline -->
-                                <PartImage x="153" y="140" width="144" height="144">
-                                    <Variant mode="ambient" target="alpha" value="255" />
-                                    <Variant mode="ambient" target="image" value="pet_idle_aod" />
-                                    <Variant mode="interactive" target="alpha" value="0" />
-                                    <Image resource="pet_idle_aod" />
-                                </PartImage>
-                            </Default>
-                        </Condition>
-                    </Default>
-                </Condition>
-            </Default>
-        </Condition>
-
-        <!-- ══════════════════════════════════════════ -->
-        <!--  DIGITAL CLOCK (below pet)                -->
-        <!-- ══════════════════════════════════════════ -->
-        <!-- Glow layer -->
-        <PartText x="225" y="330" width="200" height="55">
-            <Variant mode="ambient" target="alpha" value="0"/>
+        <!-- Branding (very subtle, bottom) -->
+        <PartText x="0" y="280" width="384" height="14">
+            <Variant mode="AMBIENT" target="alpha" value="0"/>
             <Text align="CENTER">
-                <Font family="SYNC-TO-DEVICE" size="44" color="#3050FF78" weight="BOLD" />
-                <Template>%sh:%02d
-                    <Parameter expression="[HOUR_1_12]" />
-                    <Parameter expression="[MINUTE]" />
-                </Template>
-            </Text>
-        </PartText>
-        <!-- Main clock -->
-        <PartText x="225" y="330" width="200" height="55">
-            <Text align="CENTER">
-                <Font family="SYNC-TO-DEVICE" size="44" color="#50FF78" weight="BOLD" />
-                <Variant mode="ambient" target="color" value="#AAAAAA" />
-                <Template>%sh:%02d
-                    <Parameter expression="[HOUR_1_12]" />
-                    <Parameter expression="[MINUTE]" />
-                </Template>
-            </Text>
-        </PartText>
-
-        <!-- ══════════════════════════════════════════ -->
-        <!--  DATE (below clock)                       -->
-        <!-- ══════════════════════════════════════════ -->
-        <PartText x="225" y="370" width="200" height="25">
-            <Text align="CENTER">
-                <Font family="SYNC-TO-DEVICE" size="15" color="#888888" />
-                <Variant mode="ambient" target="color" value="#555555" />
-                <Template>%s %d/%d
-                    <Parameter expression="[DAY_OF_WEEK_S]" />
-                    <Parameter expression="[MONTH]" />
-                    <Parameter expression="[DAY_OF_MONTH]" />
-                </Template>
+                <Font family="SYNC_TO_DEVICE" size="7" color="#ff151520">
+                    <Template>W E T P E T</Template>
+                </Font>
             </Text>
         </PartText>
 
