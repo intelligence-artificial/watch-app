@@ -34,7 +34,7 @@ class PetComplicationService : ComplicationDataSourceService() {
     if (type != ComplicationType.SMALL_IMAGE) return null
     val icon = Icon.createWithResource(this, R.drawable.dog_idle_1_green)
     return SmallImageComplicationData.Builder(
-      smallImage = SmallImage.Builder(icon, SmallImageType.ICON).build(),
+      smallImage = SmallImage.Builder(icon, SmallImageType.PHOTO).build(),
       contentDescription = PlainComplicationText.Builder("WetPet").build()
     ).build()
   }
@@ -85,7 +85,7 @@ class PetComplicationService : ComplicationDataSourceService() {
 
     val icon = Icon.createWithResource(this, finalRes)
     val data = SmallImageComplicationData.Builder(
-      smallImage = SmallImage.Builder(icon, SmallImageType.ICON).build(),
+      smallImage = SmallImage.Builder(icon, SmallImageType.PHOTO).build(),
       contentDescription = PlainComplicationText.Builder("WetPet").build()
     ).build()
 

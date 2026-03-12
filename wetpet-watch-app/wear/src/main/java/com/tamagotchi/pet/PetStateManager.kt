@@ -82,6 +82,8 @@ class PetStateManager(private val context: Context) {
     try {
       EmotionComplicationService.requestUpdate(context)
       NeedsComplicationService.requestUpdate(context)
+      StepsComplicationService.requestUpdate(context)
+      HeartRateComplicationService.requestUpdate(context)
       // Also refresh the pet sprite complication
       val petComponent = ComponentName(context, PetComplicationService::class.java)
       ComplicationDataSourceUpdateRequester.create(context, petComponent)

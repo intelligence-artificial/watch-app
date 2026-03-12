@@ -72,8 +72,7 @@ dependencies {
     implementation("androidx.health:health-services-client:1.1.0-alpha05")
     implementation("com.google.guava:guava:32.1.3-android")
 
-    // Health Connect (for Fitbit-exclusive metrics: HRV, SpO2)
-    implementation("androidx.health.connect:connect-client:1.0.0-alpha11")
+    // Health Connect (removed per Fitbit decoupling plan)
 
     // WorkManager (for boot re-registration of passive listener)
     implementation("androidx.work:work-runtime-ktx:2.9.0")
@@ -84,4 +83,8 @@ dependencies {
 
     // Debug
     debugImplementation("androidx.compose.ui:ui-tooling:1.5.4")
+
+    // Tests
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.mockito:mockito-core:5.3.1")
 }

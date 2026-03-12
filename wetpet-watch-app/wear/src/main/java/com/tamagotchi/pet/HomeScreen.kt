@@ -38,7 +38,8 @@ fun HomeScreen(
   healthDataManager: HealthDataManager,
   petStatusEngine: PetStatusEngine,
   onNavigateToCustomize: () -> Unit,
-  onNavigateToStats: () -> Unit
+  onNavigateToStats: () -> Unit,
+  onNavigateToHrChart: () -> Unit
 ) {
   val context = LocalContext.current
   val listState = rememberScalingLazyListState()
@@ -47,28 +48,7 @@ fun HomeScreen(
   // Track previous emotion to detect changes
   var prevEmotion by remember { mutableStateOf(petStatusEngine.currentEmotion) }
 
-  // Initialize Health Connect reader for Fitbit-exclusive metrics
-  val healthConnectReader = remember { HealthConnectReader(context) }
-  LaunchedEffect(Unit) {
-    healthConnectReader.initialize()
-  }
-
-  // Periodically read Fitbit-exclusive metrics from Health Connect (every 5 min)
-  LaunchedEffect(Unit) {
-    while (true) {
-      delay(5 * 60 * 1000L) // 5 minutes
-      try {
-        val metrics = healthConnectReader.readLatestMetrics()
-        if (metrics != null) {
-          healthDataManager.updateFitbitMetrics(
-            hrv = metrics.hrv,
-            spO2 = metrics.spO2,
-            skinTemp = metrics.skinTemperature
-          )
-        }
-      } catch (_: Exception) { /* Health Connect may not be available */ }
-    }
-  }
+  // (Health Connect reader removed to decouple from Fitbit)
 
   // Update engine every 2s
   var tick by remember { mutableIntStateOf(0) }
@@ -338,6 +318,23 @@ fun HomeScreen(
           )
         },
         colors = ChipDefaults.chipColors(backgroundColor = Color(0xFF50E6FF).copy(alpha = 0.10f)),
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(horizontal = 20.dp, vertical = 2.dp)
+      )
+    }
+    item(key = "hr_chart_btn") {
+      Chip(
+        onClick = onNavigateToHrChart,
+        label = {
+          Text(
+            "♥ HR Chart",
+            fontFamily = FontFamily.Monospace,
+            fontSize = 12.sp,
+            color = Color(0xFFFF6464)
+          )
+        },
+        colors = ChipDefaults.chipColors(backgroundColor = Color(0xFFFF6464).copy(alpha = 0.10f)),
         modifier = Modifier
           .fillMaxWidth()
           .padding(horizontal = 20.dp, vertical = 2.dp)

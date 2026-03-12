@@ -36,6 +36,8 @@ class PassiveDataService : PassiveListenerService() {
         val latest = hrPoints.last().value.toInt()
         if (latest in 30..220) {
           editor.putInt(HealthDataManager.KEY_HEART_RATE, latest)
+          // Append to HR history for chart
+          HrHistoryStore(applicationContext).append(latest)
           Log.d(TAG, "BG HR: $latest bpm")
         }
       }
@@ -106,6 +108,7 @@ class PassiveDataService : PassiveListenerService() {
     try {
       NeedsComplicationService.requestUpdate(applicationContext)
       EmotionComplicationService.requestUpdate(applicationContext)
+      HeartRateComplicationService.requestUpdate(applicationContext)
     } catch (e: Exception) {
       Log.w(TAG, "Complication update request failed: ${e.message}")
     }

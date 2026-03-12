@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "WetPetWatch"
-include(":watch_face", ":wear")
+include(":watch_face", ":watch_face_v2", ":wear")

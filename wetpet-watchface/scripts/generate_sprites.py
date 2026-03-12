@@ -241,3 +241,39 @@ def create_aod_outline(array_data, filename):
 create_aod_outline(spriteSleep, out_dir + "pet_sleep_aod.png")
 create_aod_outline(spriteIdle1, out_dir + "pet_idle_aod.png")
 
+def generate_minute_dots_xml():
+    xml_output = []
+    xml_output.append("<!-- MINUTES: 60 dots that appear as minutes accumulate -->")
+    for minute in range(60):
+        angle = minute * 6
+        xml_block = f"""
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge {minute}</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin(({angle}) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos(({angle}) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin(({angle}) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos(({angle}) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>"""
+        xml_output.append(xml_block)
+    
+    out_path = os.path.join(script_dir, "dots_output.xml")
+    with open(out_path, "w") as f:
+        f.write("\n".join(xml_output))
+    print(f"Saved {out_path}")
+
+generate_minute_dots_xml()
+

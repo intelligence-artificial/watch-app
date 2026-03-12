@@ -266,8 +266,6 @@ fun StatsScreen(
           DataRow("Steps raw", "$steps", Color.White.copy(alpha = 0.5f))
           DataRow("Cal raw", "$calories", Color.White.copy(alpha = 0.5f))
           DataRow("Floors raw", "$floors", Color.White.copy(alpha = 0.5f))
-          DataRow("HRV", "${healthDataManager.heartRateVariability}", Color.White.copy(alpha = 0.5f))
-          DataRow("SpO2", "${healthDataManager.spo2}", Color.White.copy(alpha = 0.5f))
         }
       }
     }

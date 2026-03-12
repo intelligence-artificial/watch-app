@@ -30,7 +30,6 @@ class MainActivity : ComponentActivity() {
       healthDataManager.start()
     } else {
       Log.w(TAG, "Health permissions denied — data will not be collected")
-      // Still start to show the UI, but data will remain at defaults
     }
   }
 

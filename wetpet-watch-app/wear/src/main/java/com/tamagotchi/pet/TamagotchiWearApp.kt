@@ -9,7 +9,10 @@ import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 
 @Composable
-fun WetPetWearApp(healthDataManager: HealthDataManager) {
+fun WetPetWearApp(
+  healthDataManager: HealthDataManager,
+  startDestination: String = "home"
+) {
   val context = LocalContext.current
   val petStateManager = remember { PetStateManager(context) }
   val petStatusEngine = remember { PetStatusEngine(context) }
@@ -18,7 +21,7 @@ fun WetPetWearApp(healthDataManager: HealthDataManager) {
   MaterialTheme {
     SwipeDismissableNavHost(
       navController = navController,
-      startDestination = "home"
+      startDestination = startDestination
     ) {
       composable("home") {
         HomeScreen(
@@ -26,7 +29,8 @@ fun WetPetWearApp(healthDataManager: HealthDataManager) {
           healthDataManager = healthDataManager,
           petStatusEngine = petStatusEngine,
           onNavigateToCustomize = { navController.navigate("customize") },
-          onNavigateToStats = { navController.navigate("stats") }
+          onNavigateToStats = { navController.navigate("stats") },
+          onNavigateToHrChart = { navController.navigate("hr_chart") }
         )
       }
 
@@ -42,6 +46,14 @@ fun WetPetWearApp(healthDataManager: HealthDataManager) {
           petStateManager = petStateManager,
           healthDataManager = healthDataManager,
           petStatusEngine = petStatusEngine,
+          onBack = { navController.popBackStack() }
+        )
+      }
+
+      composable("hr_chart") {
+        HrChartScreen(
+          hrHistoryStore = healthDataManager.hrHistoryStore,
+          currentBpm = healthDataManager.heartRate,
           onBack = { navController.popBackStack() }
         )
       }

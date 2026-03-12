@@ -1,0 +1,12 @@
+# Update Time Display Checklist
+- [x] Read current `watch_face_tamagotchi.xml`.
+- [x] Extend `generate_sprites.py` to output 60 minute dot blocks.
+- [x] Run `generate_sprites.py` or script to get the 60 minute dot blocks.
+- [x] Modify `watch_face_tamagotchi.xml`:
+    - [x] Replace second arc with traveling dot.
+    - [x] Add 60 minute dots (from generation script output).
+    - [x] Add single large dot for hours.
+    - [x] Remove text clock glow layer.
+    - [x] Remove `[SECOND] * 6` second arc.
+    - [x] Keep text clock small as fallback.
+    - [x] Keep battery and step arcs.

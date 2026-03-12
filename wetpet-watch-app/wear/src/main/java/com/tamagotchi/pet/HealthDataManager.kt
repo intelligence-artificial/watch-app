@@ -57,14 +57,6 @@ class HealthDataManager(private val context: Context) {
   @Volatile var distance: Float = 0f
     private set
 
-  // ── Fitbit-exclusive metrics (populated via Health Connect) ──
-  @Volatile var heartRateVariability: Float = 0f
-    private set
-  @Volatile var skinTemperature: Float = 0f
-    private set
-  @Volatile var spo2: Int = 0
-    private set
-
   // ── Derived metrics ──
   @Volatile var activeMinutesZone2Plus: Int = 0
     private set
@@ -81,6 +73,9 @@ class HealthDataManager(private val context: Context) {
 
   private var lastStepCount: Int = 0
   private var lastStepChangeMs: Long = System.currentTimeMillis()
+
+  // HR history for chart
+  val hrHistoryStore = HrHistoryStore(context)
 
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
   private val passiveClient: PassiveMonitoringClient =
@@ -203,6 +198,7 @@ class HealthDataManager(private val context: Context) {
       val latest = hrPoints.last().value.toInt()
       if (latest in 30..220) {
         heartRate = latest
+        hrHistoryStore.append(latest)
         if (latest >= 100) activeMinutesZone2Plus++
         Log.d(TAG, "HR: $heartRate bpm")
       }
@@ -284,32 +280,17 @@ class HealthDataManager(private val context: Context) {
     Log.d(TAG, "Loaded from prefs: steps=$dailySteps, hr=$heartRate, cal=$calories")
   }
 
-  /**
-   * Update Fitbit-exclusive metrics from Health Connect.
-   * Called by HealthConnectReader on a periodic schedule.
-   */
-  fun updateFitbitMetrics(hrv: Float, spO2: Int, skinTemp: Float) {
-    heartRateVariability = hrv
-    spo2 = spO2
-    skinTemperature = skinTemp
-    Log.d(TAG, "Fitbit metrics updated: HRV=$hrv, SpO2=$spO2, skinTemp=$skinTemp")
-  }
-
   fun stop() {
     passiveClient.clearPassiveListenerCallbackAsync()
     Log.d(TAG, "Passive health listener cleared")
   }
 
-  /** Create a snapshot for the PetStatusEngine */
   fun snapshot(): HealthDataSnapshot = HealthDataSnapshot(
     heartRate = heartRate,
     dailySteps = dailySteps,
     calories = calories,
     floorsClimbed = floorsClimbed,
     distance = distance,
-    heartRateVariability = heartRateVariability,
-    skinTemperature = skinTemperature,
-    spo2 = spo2,
     activeMinutesZone2Plus = activeMinutesZone2Plus,
     isSedentary = isSedentary
   )

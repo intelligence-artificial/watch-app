@@ -93,15 +93,1347 @@
                     </Arc>
                 </PartDraw>
 
-                <!-- Second Dots (Ambient Mode: Hidden) -->
-                <!-- We simulate the 60 dots using a sweeping sweep-gradient or tick marks, 
-                     but for simplicity in XML, we just use an arc that tracks seconds. -->
+                <!-- SECONDS: Single traveling dot (outermost ring, r=195) -->
                 <PartDraw x="0" y="0" width="450" height="450">
                     <Variant mode="ambient" target="alpha" value="0"/>
-                    <Arc centerX="225" centerY="225" width="360" height="360"
-                         startAngle="-90" endAngle="-90 + [SECOND] * 6" thickness="4">
-                         <Stroke color="#3050ff78"/>
-                    </Arc>
+                    <Circle
+                        centerX="225 + (195 * sin(([SECOND] * 6) * 3.14159 / 180))"
+                        centerY="225 - (195 * cos(([SECOND] * 6) * 3.14159 / 180))"
+                        radius="5">
+                        <Fill color="#50ff78"/>
+                    </Circle>
+                </PartDraw>
+
+<!-- MINUTES: 60 dots that appear as minutes accumulate -->
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 0</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((0) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((0) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((0) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((0) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 1</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((6) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((6) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((6) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((6) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 2</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((12) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((12) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((12) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((12) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 3</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((18) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((18) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((18) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((18) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 4</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((24) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((24) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((24) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((24) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 5</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((30) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((30) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((30) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((30) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 6</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((36) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((36) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((36) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((36) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 7</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((42) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((42) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((42) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((42) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 8</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((48) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((48) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((48) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((48) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 9</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((54) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((54) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((54) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((54) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 10</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((60) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((60) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((60) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((60) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 11</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((66) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((66) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((66) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((66) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 12</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((72) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((72) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((72) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((72) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 13</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((78) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((78) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((78) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((78) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 14</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((84) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((84) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((84) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((84) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 15</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((90) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((90) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((90) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((90) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 16</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((96) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((96) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((96) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((96) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 17</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((102) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((102) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((102) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((102) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 18</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((108) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((108) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((108) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((108) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 19</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((114) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((114) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((114) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((114) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 20</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((120) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((120) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((120) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((120) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 21</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((126) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((126) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((126) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((126) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 22</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((132) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((132) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((132) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((132) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 23</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((138) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((138) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((138) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((138) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 24</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((144) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((144) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((144) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((144) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 25</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((150) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((150) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((150) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((150) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 26</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((156) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((156) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((156) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((156) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 27</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((162) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((162) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((162) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((162) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 28</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((168) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((168) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((168) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((168) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 29</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((174) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((174) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((174) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((174) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 30</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((180) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((180) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((180) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((180) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 31</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((186) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((186) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((186) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((186) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 32</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((192) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((192) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((192) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((192) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 33</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((198) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((198) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((198) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((198) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 34</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((204) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((204) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((204) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((204) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 35</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((210) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((210) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((210) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((210) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 36</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((216) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((216) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((216) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((216) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 37</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((222) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((222) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((222) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((222) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 38</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((228) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((228) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((228) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((228) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 39</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((234) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((234) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((234) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((234) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 40</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((240) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((240) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((240) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((240) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 41</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((246) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((246) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((246) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((246) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 42</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((252) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((252) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((252) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((252) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 43</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((258) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((258) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((258) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((258) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 44</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((264) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((264) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((264) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((264) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 45</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((270) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((270) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((270) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((270) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 46</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((276) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((276) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((276) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((276) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 47</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((282) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((282) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((282) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((282) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 48</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((288) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((288) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((288) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((288) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 49</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((294) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((294) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((294) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((294) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 50</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((300) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((300) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((300) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((300) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 51</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((306) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((306) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((306) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((306) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 52</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((312) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((312) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((312) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((312) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 53</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((318) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((318) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((318) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((318) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 54</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((324) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((324) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((324) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((324) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 55</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((330) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((330) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((330) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((330) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 56</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((336) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((336) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((336) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((336) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 57</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((342) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((342) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((342) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((342) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 58</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((348) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((348) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((348) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((348) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Variant mode="ambient" target="alpha" value="0"/>
+                    <Condition>
+                        <Expression>[MINUTE] ge 59</Expression>
+                        <Circle
+                            centerX="225 + (165 * sin((354) * 3.14159 / 180))"
+                            centerY="225 - (165 * cos((354) * 3.14159 / 180))"
+                            radius="4">
+                            <Fill color="#50e6ff"/>
+                        </Circle>
+                        <Default>
+                            <!-- Ghost dot -->
+                            <Circle
+                                centerX="225 + (165 * sin((354) * 3.14159 / 180))"
+                                centerY="225 - (165 * cos((354) * 3.14159 / 180))"
+                                radius="4">
+                                <Fill color="#15FFFFFF"/>
+                            </Circle>
+                        </Default>
+                    </Condition>
+                </PartDraw>
+
+                <!-- HOURS: Single large dot at current hour position (12h) -->
+                <PartDraw x="0" y="0" width="450" height="450">
+                    <Circle
+                        centerX="225 + (155 * sin(([HOUR_1_12] * 30) * 3.14159 / 180))"
+                        centerY="225 - (155 * cos(([HOUR_1_12] * 30) * 3.14159 / 180))"
+                        radius="9">
+                        <Fill color="#ff78b4"/>  <!-- Neon pink -->
+                    </Circle>
                 </PartDraw>
 
 
@@ -168,21 +1500,10 @@
                 <!-- ========================================== -->
                 <!--  DIGITAL CLOCK (TOP CENTER)               -->
                 <!-- ========================================== -->
-                <!-- Time Glow -->
-                <PartText x="225" y="100" width="200" height="60">
-                    <Variant mode="ambient" target="alpha" value="0"/>
+                <!-- Time Main (Secondary view fallback) -->
+                <PartText x="225" y="320" width="200" height="40">
                     <Text align="CENTER">
-                        <Font family="SYNC-TO-DEVICE" size="50" color="#4050ff78" weight="BOLD" />
-                        <Template>%sh:%02d
-                            <Parameter expression="[HOUR_1_12]" />
-                            <Parameter expression="[MINUTE]" />
-                        </Template>
-                    </Text>
-                </PartText>
-                <!-- Time Main (Visible in Ambient too) -->
-                <PartText x="225" y="100" width="200" height="60">
-                    <Text align="CENTER">
-                        <Font family="SYNC-TO-DEVICE" size="50" color="#50ff78" weight="BOLD" />
+                        <Font family="SYNC-TO-DEVICE" size="30" color="#50ff78" weight="BOLD" />
                         <Variant mode="ambient" target="color" value="#AAAAAA" />
                         <Template>%sh:%02d
                             <Parameter expression="[HOUR_1_12]" />
