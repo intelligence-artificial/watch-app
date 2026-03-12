@@ -50,11 +50,11 @@ fun HomeScreen(
 
   // (Health Connect reader removed to decouple from Fitbit)
 
-  // Update engine every 2s
+  // Update engine every 5s (reduced from 2s to fix lag)
   var tick by remember { mutableIntStateOf(0) }
   LaunchedEffect(Unit) {
     while (true) {
-      delay(2000)
+      delay(5000)
       petStatusEngine.update(healthDataManager.snapshot())
       val newEmotion = petStatusEngine.currentEmotion
       petStateManager.saveEmotion(newEmotion)
@@ -318,23 +318,6 @@ fun HomeScreen(
           )
         },
         colors = ChipDefaults.chipColors(backgroundColor = Color(0xFF50E6FF).copy(alpha = 0.10f)),
-        modifier = Modifier
-          .fillMaxWidth()
-          .padding(horizontal = 20.dp, vertical = 2.dp)
-      )
-    }
-    item(key = "hr_chart_btn") {
-      Chip(
-        onClick = onNavigateToHrChart,
-        label = {
-          Text(
-            "♥ HR Chart",
-            fontFamily = FontFamily.Monospace,
-            fontSize = 12.sp,
-            color = Color(0xFFFF6464)
-          )
-        },
-        colors = ChipDefaults.chipColors(backgroundColor = Color(0xFFFF6464).copy(alpha = 0.10f)),
         modifier = Modifier
           .fillMaxWidth()
           .padding(horizontal = 20.dp, vertical = 2.dp)

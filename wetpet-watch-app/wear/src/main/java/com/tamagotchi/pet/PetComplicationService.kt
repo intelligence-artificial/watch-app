@@ -84,11 +84,27 @@ class PetComplicationService : ComplicationDataSourceService() {
     Log.d(TAG, "Sprite: name=$spriteName resId=$resId finalRes=$finalRes mood=$mood pkg=$packageName")
 
     val icon = Icon.createWithResource(this, finalRes)
+    val tapAction = createTapIntent()
     val data = SmallImageComplicationData.Builder(
       smallImage = SmallImage.Builder(icon, SmallImageType.PHOTO).build(),
       contentDescription = PlainComplicationText.Builder("WetPet").build()
-    ).build()
+    )
+      .setTapAction(tapAction)
+      .build()
 
     listener.onComplicationData(data)
+  }
+
+  /** Opens WetPet app to the home screen */
+  private fun createTapIntent(): android.app.PendingIntent {
+    val intent = android.content.Intent().apply {
+      setClassName(packageName, "com.tamagotchi.pet.MainActivity")
+      putExtra("navigate_to", "home")
+      addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
+    }
+    return android.app.PendingIntent.getActivity(
+      this, 1000, intent,
+      android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+    )
   }
 }

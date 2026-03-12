@@ -106,6 +106,8 @@ class HealthDataManager(private val context: Context) {
         // Fallback: try registering without capability check
         registerWithDefaults()
       }
+      // Force complication binding on app start
+      HeartRateComplicationService.requestUpdate(context)
     }
   }
 
@@ -201,6 +203,8 @@ class HealthDataManager(private val context: Context) {
         hrHistoryStore.append(latest)
         if (latest >= 100) activeMinutesZone2Plus++
         Log.d(TAG, "HR: $heartRate bpm")
+        // Push update to watch face complication
+        HeartRateComplicationService.requestUpdate(context)
       }
     }
 

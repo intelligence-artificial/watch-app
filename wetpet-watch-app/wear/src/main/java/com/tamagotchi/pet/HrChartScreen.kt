@@ -72,6 +72,7 @@ fun HrChartScreen(
     modifier = Modifier
       .fillMaxSize()
       .background(Color(0xFF020206))
+      .padding(horizontal = 8.dp)
   ) {
     // ── Header: current BPM ──
     item {
@@ -127,8 +128,8 @@ fun HrChartScreen(
           readings = history,
           modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 8.dp)
-            .height(90.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .height(75.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(Color.White.copy(alpha = 0.03f))
             .padding(8.dp)
@@ -137,8 +138,8 @@ fun HrChartScreen(
         Box(
           modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 8.dp)
-            .height(70.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .height(60.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(Color.White.copy(alpha = 0.03f)),
           contentAlignment = Alignment.Center
@@ -165,7 +166,7 @@ fun HrChartScreen(
         Column(
           modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .padding(horizontal = 12.dp, vertical = 4.dp)
             .clip(RoundedCornerShape(14.dp))
             .background(Color.White.copy(alpha = 0.04f))
             .padding(10.dp)

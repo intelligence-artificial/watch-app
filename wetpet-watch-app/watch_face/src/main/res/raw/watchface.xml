@@ -3,26 +3,37 @@
     WetPet Watch Face — Glassmorphism Edition
     384×384 Pixel Watch 2
 
-    Design: Frosted glass complication bubbles, dynamic BPM color zones,
-    ECG waveform overlays, glassmorphism pill battery.
+    ═══════════════════════════════════════════
+    COMPLICATION MAP (2 slots + battery)
+    ═══════════════════════════════════════════
 
-    BPM Color Zones:
-      Resting  < 70   → Blue   #4488FF
-      Normal   70-90  → Green  #00D68F
-      Elevated 90-120 → Amber  #FFB800
-      High     120+   → Red    #FF3366
+    SLOT 0 — "WetPet Pet"
+      Position: Center (x=152 y=56, 80×80)
+      Service:  PetComplicationService (SMALL_IMAGE)
+      Tap:      Opens WetPet app (Launch overlay at x=137 y=41)
+
+    SLOT 1 — "Heart Rate BPM"
+      Position: Top-left (x=42 y=46, 90×90)
+      Service:  HeartRateComplicationService (SHORT_TEXT)
+      Tap:      Complication tapAction → Stats screen
+      Fallback: Static ".. BPM" with red ring (shows when unbound)
+
+    BATTERY — Static WFF (no ComplicationSlot)
+      Position: Bottom-center (x=132 y=265, 120×30)
+      Uses:     [BATTERY_PERCENT] expression
+
+    ═══════════════════════════════════════════
 
     Design layers (back to front):
       1. Background fill with outer contour ring
       2. Minute sweep arc on outer ring
       3. Seconds dot orbiter with comet tail
       4. Hour tick marks (12 positions)
-      5. Steps complication (glassmorphism bubble, top left)
-      6. Heart Rate complication (dynamic 4-zone, top right)
-      7. Battery pill (glassmorphism, bottom center)
-      8. Pet sprite at center with soft glow ring
-      9. Digital clock (large)
-      10. Date pill
+      5. SLOT 1: Heart Rate BPM (top left)
+      6. Battery pill (glassmorphism, bottom center)
+      7. SLOT 0: Pet sprite (center) + Launch tap overlay
+      8. Digital clock (large)
+      9. Date pill
 -->
 <WatchFace width="384" height="384">
 
@@ -161,345 +172,141 @@
         </PartDraw>
 
         <!-- ════════════════════════════════════════════ -->
-        <!--  COMPLICATION: STEPS (top left)             -->
-        <!--  Clean floating text on OLED black          -->
+        <!--  HEART RATE (top left)                       -->
+        <!--  Layer 1: Static fallback (always visible)   -->
+        <!--  Layer 2: ComplicationSlot (shows BPM number)-->
         <!-- ════════════════════════════════════════════ -->
+
+        <!-- Layer 1: Static fallback — always renders -->
+        <Group x="42" y="46" width="90" height="90">
+            <!-- Heart outline ring -->
+            <PartDraw x="3" y="3" width="84" height="84">
+                <Arc centerX="42" centerY="42" width="84" height="84"
+                     startAngle="0" endAngle="360" thickness="7">
+                    <Stroke color="#55FF3366" cap="ROUND"/>
+                </Arc>
+            </PartDraw>
+            <!-- Dash placeholder -->
+            <PartText x="5" y="14" width="80" height="34">
+                <Text align="CENTER">
+                    <Font family="SYNC_TO_DEVICE" size="22" color="#BBffffff" weight="BOLD">
+                        <Template>--</Template>
+                    </Font>
+                </Text>
+            </PartText>
+            <!-- BPM label -->
+            <PartText x="5" y="50" width="80" height="16">
+                <Text align="CENTER">
+                    <Font family="SYNC_TO_DEVICE" size="11" color="#88FF3366" weight="BOLD">
+                        <Template>BPM</Template>
+                    </Font>
+                </Text>
+            </PartText>
+            <Variant mode="AMBIENT" target="alpha" value="0"/>
+        </Group>
+
+        <!-- Layer 2: ComplicationSlot — shows actual BPM when bound -->
         <ComplicationSlot
             x="42" y="46" width="90" height="90"
             slotId="1"
-            displayName="Steps"
+            displayName="Heart Rate"
             isConfigurable="false"
             supportedTypes="SHORT_TEXT RANGED_VALUE EMPTY"
-            defaultDataSource="com.wetpet.watch/com.tamagotchi.pet.StepsComplicationService"
+            defaultDataSource="com.wetpet.watch/com.tamagotchi.pet.HeartRateComplicationService"
             defaultDataSourceType="SHORT_TEXT">
             <BoundingOval x="0" y="0" width="90" height="90" outlinePadding="2"/>
             <DefaultProviderPolicy
-                defaultSystemProvider="STEP_COUNT"
+                defaultSystemProvider="EMPTY"
                 defaultSystemProviderType="SHORT_TEXT"/>
 
-            <!-- SHORT_TEXT layout -->
             <Complication type="SHORT_TEXT">
-                <!-- Subtle ring border -->
+                <!-- Black fill to cover fallback -->
+                <PartDraw x="10" y="10" width="70" height="70">
+                    <Arc centerX="35" centerY="35" width="70" height="70"
+                         startAngle="0" endAngle="360" thickness="34">
+                        <Stroke color="#FF000000" cap="BUTT"/>
+                    </Arc>
+                </PartDraw>
+                <!-- Heart outline ring -->
                 <PartDraw x="3" y="3" width="84" height="84">
                     <Arc centerX="42" centerY="42" width="84" height="84"
                          startAngle="0" endAngle="360" thickness="7">
-                        <Stroke color="#3300E5FF" cap="ROUND"/>
+                        <Stroke color="#55FF3366" cap="ROUND"/>
                     </Arc>
                 </PartDraw>
-                <!-- Step count — white, big, bold -->
-                <PartText x="5" y="20" width="80" height="32">
+                <!-- BPM number — white, big, readable -->
+                <PartText x="5" y="14" width="80" height="34">
                     <Text align="CENTER" ellipsis="TRUE">
-                        <Font family="SYNC_TO_DEVICE" size="24" color="#FFffffff" weight="BOLD">
+                        <Font family="SYNC_TO_DEVICE" size="26" color="#FFffffff" weight="BOLD">
                             <Template><![CDATA[%s]]>
                                 <Parameter expression="[COMPLICATION.TEXT]"/>
                             </Template>
                         </Font>
                     </Text>
                 </PartText>
-                <!-- Label — dim cyan -->
-                <PartText x="5" y="54" width="80" height="16">
+                <!-- BPM label -->
+                <PartText x="5" y="50" width="80" height="16">
                     <Text align="CENTER">
-                        <Font family="SYNC_TO_DEVICE" size="10" color="#8800E5FF">
-                            <Template>STEPS</Template>
+                        <Font family="SYNC_TO_DEVICE" size="11" color="#88FF3366" weight="BOLD">
+                            <Template>BPM</Template>
                         </Font>
                     </Text>
                 </PartText>
                 <Variant mode="AMBIENT" target="alpha" value="0"/>
             </Complication>
 
-            <!-- RANGED_VALUE layout (with progress arc) -->
             <Complication type="RANGED_VALUE">
-                <PartDraw x="3" y="3" width="84" height="84">
-                    <!-- Track -->
-                    <Arc centerX="42" centerY="42" width="84" height="84"
-                         startAngle="-90" endAngle="270" thickness="7">
-                        <Stroke color="#1800E5FF" cap="ROUND"/>
-                    </Arc>
-                    <!-- Progress fill -->
-                    <Arc centerX="42" centerY="42" width="84" height="84"
-                         startAngle="-90" endAngle="270" thickness="7">
-                        <Stroke color="#CC00E5FF" cap="ROUND"/>
-                        <Transform target="endAngle" value="-90 + (((clamp(([COMPLICATION.RANGED_VALUE_VALUE]), ([COMPLICATION.RANGED_VALUE_MIN]), ([COMPLICATION.RANGED_VALUE_MAX])) - ([COMPLICATION.RANGED_VALUE_MIN])) / (([COMPLICATION.RANGED_VALUE_MAX]) - ([COMPLICATION.RANGED_VALUE_MIN]))) * (360))"/>
+                <!-- Black fill -->
+                <PartDraw x="10" y="10" width="70" height="70">
+                    <Arc centerX="35" centerY="35" width="70" height="70"
+                         startAngle="0" endAngle="360" thickness="34">
+                        <Stroke color="#FF000000" cap="BUTT"/>
                     </Arc>
                 </PartDraw>
-                <!-- Step count — white -->
-                <PartText x="5" y="20" width="80" height="32">
-                    <Text align="CENTER" ellipsis="TRUE">
-                        <Font family="SYNC_TO_DEVICE" size="24" color="#FFffffff" weight="BOLD">
-                            <Template><![CDATA[%s]]>
-                                <Parameter expression="[COMPLICATION.TEXT]"/>
-                            </Template>
-                        </Font>
-                    </Text>
-                </PartText>
-                <!-- Label -->
-                <PartText x="5" y="54" width="80" height="16">
-                    <Text align="CENTER">
-                        <Font family="SYNC_TO_DEVICE" size="10" color="#8800E5FF">
-                            <Template>STEPS</Template>
-                        </Font>
-                    </Text>
-                </PartText>
-                <Variant mode="AMBIENT" target="alpha" value="0"/>
-            </Complication>
-
-            <!-- EMPTY fallback -->
-            <Complication type="EMPTY">
+                <!-- Heart outline ring -->
                 <PartDraw x="3" y="3" width="84" height="84">
                     <Arc centerX="42" centerY="42" width="84" height="84"
                          startAngle="0" endAngle="360" thickness="7">
-                        <Stroke color="#2200E5FF" cap="ROUND"/>
+                        <Stroke color="#55FF3366" cap="ROUND"/>
                     </Arc>
                 </PartDraw>
-                <PartText x="5" y="20" width="80" height="32">
-                    <Text align="CENTER">
-                        <Font family="SYNC_TO_DEVICE" size="18" color="#77ffffff" weight="BOLD">
-                            <Template>--</Template>
-                        </Font>
-                    </Text>
-                </PartText>
-                <PartText x="5" y="54" width="80" height="16">
-                    <Text align="CENTER">
-                        <Font family="SYNC_TO_DEVICE" size="10" color="#5500E5FF">
-                            <Template>STEPS</Template>
-                        </Font>
-                    </Text>
-                </PartText>
-                <Variant mode="AMBIENT" target="alpha" value="0"/>
-            </Complication>
-        </ComplicationSlot>
-
-        <!-- ════════════════════════════════════════════ -->
-        <!--  COMPLICATION: HEART RATE (top right)       -->
-        <!--  Dynamic BPM color zones                    -->
-        <!--                                             -->
-        <!--  Uses ordered < checks (cascade),           -->
-        <!--  NOT && (unsupported in WFF expressions).   -->
-        <!--  Conditions are checked in order, so if     -->
-        <!--  "below70" is false and "below90" is true,  -->
-        <!--  BPM must be in 70-89 range.                -->
-        <!-- ════════════════════════════════════════════ -->
-        <ComplicationSlot
-            x="250" y="58" width="76" height="76"
-            slotId="2"
-            displayName="Heart Rate"
-            isConfigurable="false"
-            supportedTypes="RANGED_VALUE SHORT_TEXT EMPTY"
-            defaultDataSource="com.wetpet.watch/com.tamagotchi.pet.HeartRateComplicationService"
-            defaultDataSourceType="RANGED_VALUE">
-            <BoundingOval x="0" y="0" width="76" height="76" outlinePadding="2"/>
-            <DefaultProviderPolicy
-                defaultSystemProvider="EMPTY"
-                defaultSystemProviderType="RANGED_VALUE"/>
-
-            <!-- ──────────────────────────────────── -->
-            <!--  RANGED_VALUE: 4-zone BPM colors    -->
-            <!--  Ordered cascade: <70, <90, <120    -->
-            <!-- ──────────────────────────────────── -->
-            <Complication type="RANGED_VALUE">
-                <Condition>
-                    <Expressions>
-                        <Expression name="below70"><![CDATA[[COMPLICATION.RANGED_VALUE_VALUE] < 70]]></Expression>
-                        <Expression name="below90"><![CDATA[[COMPLICATION.RANGED_VALUE_VALUE] < 90]]></Expression>
-                        <Expression name="below120"><![CDATA[[COMPLICATION.RANGED_VALUE_VALUE] < 120]]></Expression>
-                    </Expressions>
-
-                    <!-- ZONE 1: RESTING (<70 BPM) — Blue #4488FF -->
-                    <Compare expression="below70">
-                        <PartImage x="0" y="0" width="76" height="76">
-                            <Image resource="glass_hr_blue"/>
-                        </PartImage>
-                        <PartImage x="0" y="0" width="76" height="76">
-                            <Image resource="ecg_blue"/>
-                        </PartImage>
-                        <PartDraw x="3" y="3" width="70" height="70">
-                            <Arc centerX="35" centerY="35" width="70" height="70"
-                                 startAngle="-90" endAngle="270" thickness="4">
-                                <Stroke color="#184488FF" cap="ROUND"/>
-                            </Arc>
-                            <Arc centerX="35" centerY="35" width="70" height="70"
-                                 startAngle="-90" endAngle="270" thickness="4">
-                                <Stroke color="#CC4488FF" cap="ROUND"/>
-                                <Transform target="endAngle" value="-90 + (((clamp(([COMPLICATION.RANGED_VALUE_VALUE]), ([COMPLICATION.RANGED_VALUE_MIN]), ([COMPLICATION.RANGED_VALUE_MAX])) - ([COMPLICATION.RANGED_VALUE_MIN])) / (([COMPLICATION.RANGED_VALUE_MAX]) - ([COMPLICATION.RANGED_VALUE_MIN]))) * (360))"/>
-                            </Arc>
-                        </PartDraw>
-                        <PartText x="6" y="18" width="64" height="22">
-                            <Text align="CENTER" ellipsis="TRUE">
-                                <Font family="SYNC_TO_DEVICE" size="15" color="#DD4488FF" weight="BOLD">
-                                    <Template><![CDATA[%s]]>
-                                        <Parameter expression="[COMPLICATION.TEXT]"/>
-                                    </Template>
-                                </Font>
-                            </Text>
-                        </PartText>
-                        <PartText x="6" y="40" width="64" height="14">
-                            <Text align="CENTER">
-                                <Font family="SYNC_TO_DEVICE" size="8" color="#554488FF">
-                                    <Template>♥ BPM</Template>
-                                </Font>
-                            </Text>
-                        </PartText>
-                    </Compare>
-
-                    <!-- ZONE 2: NORMAL (70-89 BPM) — Green #00D68F -->
-                    <!-- Reached only if below70 was false -->
-                    <Compare expression="below90">
-                        <PartImage x="0" y="0" width="76" height="76">
-                            <Image resource="glass_hr_green"/>
-                        </PartImage>
-                        <PartImage x="0" y="0" width="76" height="76">
-                            <Image resource="ecg_green"/>
-                        </PartImage>
-                        <PartDraw x="3" y="3" width="70" height="70">
-                            <Arc centerX="35" centerY="35" width="70" height="70"
-                                 startAngle="-90" endAngle="270" thickness="4">
-                                <Stroke color="#1800D68F" cap="ROUND"/>
-                            </Arc>
-                            <Arc centerX="35" centerY="35" width="70" height="70"
-                                 startAngle="-90" endAngle="270" thickness="4">
-                                <Stroke color="#CC00D68F" cap="ROUND"/>
-                                <Transform target="endAngle" value="-90 + (((clamp(([COMPLICATION.RANGED_VALUE_VALUE]), ([COMPLICATION.RANGED_VALUE_MIN]), ([COMPLICATION.RANGED_VALUE_MAX])) - ([COMPLICATION.RANGED_VALUE_MIN])) / (([COMPLICATION.RANGED_VALUE_MAX]) - ([COMPLICATION.RANGED_VALUE_MIN]))) * (360))"/>
-                            </Arc>
-                        </PartDraw>
-                        <PartText x="6" y="18" width="64" height="22">
-                            <Text align="CENTER" ellipsis="TRUE">
-                                <Font family="SYNC_TO_DEVICE" size="15" color="#DD00D68F" weight="BOLD">
-                                    <Template><![CDATA[%s]]>
-                                        <Parameter expression="[COMPLICATION.TEXT]"/>
-                                    </Template>
-                                </Font>
-                            </Text>
-                        </PartText>
-                        <PartText x="6" y="40" width="64" height="14">
-                            <Text align="CENTER">
-                                <Font family="SYNC_TO_DEVICE" size="8" color="#5500D68F">
-                                    <Template>♥ BPM</Template>
-                                </Font>
-                            </Text>
-                        </PartText>
-                    </Compare>
-
-                    <!-- ZONE 3: ELEVATED (90-119 BPM) — Amber #FFB800 -->
-                    <!-- Reached only if below90 was false -->
-                    <Compare expression="below120">
-                        <PartImage x="0" y="0" width="76" height="76">
-                            <Image resource="glass_hr_amber"/>
-                        </PartImage>
-                        <PartImage x="0" y="0" width="76" height="76">
-                            <Image resource="ecg_amber"/>
-                        </PartImage>
-                        <PartDraw x="3" y="3" width="70" height="70">
-                            <Arc centerX="35" centerY="35" width="70" height="70"
-                                 startAngle="-90" endAngle="270" thickness="4">
-                                <Stroke color="#18FFB800" cap="ROUND"/>
-                            </Arc>
-                            <Arc centerX="35" centerY="35" width="70" height="70"
-                                 startAngle="-90" endAngle="270" thickness="4">
-                                <Stroke color="#CCFFB800" cap="ROUND"/>
-                                <Transform target="endAngle" value="-90 + (((clamp(([COMPLICATION.RANGED_VALUE_VALUE]), ([COMPLICATION.RANGED_VALUE_MIN]), ([COMPLICATION.RANGED_VALUE_MAX])) - ([COMPLICATION.RANGED_VALUE_MIN])) / (([COMPLICATION.RANGED_VALUE_MAX]) - ([COMPLICATION.RANGED_VALUE_MIN]))) * (360))"/>
-                            </Arc>
-                        </PartDraw>
-                        <PartText x="6" y="18" width="64" height="22">
-                            <Text align="CENTER" ellipsis="TRUE">
-                                <Font family="SYNC_TO_DEVICE" size="15" color="#DDFFB800" weight="BOLD">
-                                    <Template><![CDATA[%s]]>
-                                        <Parameter expression="[COMPLICATION.TEXT]"/>
-                                    </Template>
-                                </Font>
-                            </Text>
-                        </PartText>
-                        <PartText x="6" y="40" width="64" height="14">
-                            <Text align="CENTER">
-                                <Font family="SYNC_TO_DEVICE" size="8" color="#55FFB800">
-                                    <Template>♥ BPM</Template>
-                                </Font>
-                            </Text>
-                        </PartText>
-                    </Compare>
-
-                    <!-- ZONE 4: HIGH (120+ BPM) — Red #FF3366 -->
-                    <!-- Default: reached only if all above were false -->
-                    <Default>
-                        <PartImage x="0" y="0" width="76" height="76">
-                            <Image resource="glass_hr_red"/>
-                        </PartImage>
-                        <PartImage x="0" y="0" width="76" height="76">
-                            <Image resource="ecg_red"/>
-                        </PartImage>
-                        <PartDraw x="3" y="3" width="70" height="70">
-                            <Arc centerX="35" centerY="35" width="70" height="70"
-                                 startAngle="-90" endAngle="270" thickness="4">
-                                <Stroke color="#18FF3366" cap="ROUND"/>
-                            </Arc>
-                            <Arc centerX="35" centerY="35" width="70" height="70"
-                                 startAngle="-90" endAngle="270" thickness="4">
-                                <Stroke color="#CCFF3366" cap="ROUND"/>
-                                <Transform target="endAngle" value="-90 + (((clamp(([COMPLICATION.RANGED_VALUE_VALUE]), ([COMPLICATION.RANGED_VALUE_MIN]), ([COMPLICATION.RANGED_VALUE_MAX])) - ([COMPLICATION.RANGED_VALUE_MIN])) / (([COMPLICATION.RANGED_VALUE_MAX]) - ([COMPLICATION.RANGED_VALUE_MIN]))) * (360))"/>
-                            </Arc>
-                        </PartDraw>
-                        <PartText x="6" y="18" width="64" height="22">
-                            <Text align="CENTER" ellipsis="TRUE">
-                                <Font family="SYNC_TO_DEVICE" size="15" color="#DDFF3366" weight="BOLD">
-                                    <Template><![CDATA[%s]]>
-                                        <Parameter expression="[COMPLICATION.TEXT]"/>
-                                    </Template>
-                                </Font>
-                            </Text>
-                        </PartText>
-                        <PartText x="6" y="40" width="64" height="14">
-                            <Text align="CENTER">
-                                <Font family="SYNC_TO_DEVICE" size="8" color="#55FF3366">
-                                    <Template>♥ BPM</Template>
-                                </Font>
-                            </Text>
-                        </PartText>
-                    </Default>
-                </Condition>
-                <Variant mode="AMBIENT" target="alpha" value="0"/>
-            </Complication>
-
-            <!-- SHORT_TEXT fallback (default green) -->
-            <Complication type="SHORT_TEXT">
-                <PartImage x="0" y="0" width="76" height="76">
-                    <Image resource="glass_hr_green"/>
-                </PartImage>
-                <PartImage x="0" y="0" width="76" height="76">
-                    <Image resource="ecg_green"/>
-                </PartImage>
-                <PartText x="6" y="18" width="64" height="22">
+                <!-- BPM number — white -->
+                <PartText x="5" y="14" width="80" height="34">
                     <Text align="CENTER" ellipsis="TRUE">
-                        <Font family="SYNC_TO_DEVICE" size="15" color="#DD00D68F" weight="BOLD">
+                        <Font family="SYNC_TO_DEVICE" size="26" color="#FFffffff" weight="BOLD">
                             <Template><![CDATA[%s]]>
                                 <Parameter expression="[COMPLICATION.TEXT]"/>
                             </Template>
                         </Font>
                     </Text>
                 </PartText>
-                <PartText x="6" y="40" width="64" height="14">
+                <!-- BPM label -->
+                <PartText x="5" y="50" width="80" height="16">
                     <Text align="CENTER">
-                        <Font family="SYNC_TO_DEVICE" size="8" color="#5500D68F">
-                            <Template>♥ BPM</Template>
+                        <Font family="SYNC_TO_DEVICE" size="11" color="#88FF3366" weight="BOLD">
+                            <Template>BPM</Template>
                         </Font>
                     </Text>
                 </PartText>
                 <Variant mode="AMBIENT" target="alpha" value="0"/>
             </Complication>
 
-            <!-- EMPTY fallback -->
-            <Complication type="EMPTY">
-                <PartImage x="0" y="0" width="76" height="76">
-                    <Image resource="glass_hr_green"/>
-                </PartImage>
-                <PartText x="6" y="28" width="64" height="20">
-                    <Text align="CENTER">
-                        <Font family="SYNC_TO_DEVICE" size="8" color="#8800D68F">
-                            <Template>♥ BPM</Template>
-                        </Font>
-                    </Text>
-                </PartText>
-                <Variant mode="AMBIENT" target="alpha" value="0"/>
-            </Complication>
+            <!-- EMPTY: transparent so static fallback shows through -->
+            <Complication type="EMPTY"/>
         </ComplicationSlot>
+
+        <!-- Layer 3: Tap overlay for HR area — opens WetPet app -->
+        <Group x="42" y="46" width="90" height="90">
+            <Variant mode="AMBIENT" target="alpha" value="0"/>
+            <Launch target="com.wetpet.watch"/>
+        </Group>
+
+
+
+
+
+
+
 
         <!-- ════════════════════════════════════════════ -->
         <!--  BATTERY (bottom center)                   -->
@@ -581,7 +388,8 @@
             <Image resource="pet_idle_aod"/>
         </PartImage>
 
-        <!-- Tap to launch WetPet -->
+
+        <!-- SLOT 0 TAP: Pet tap opens WetPet home -->
         <Group x="137" y="41" width="110" height="110">
             <Variant mode="AMBIENT" target="alpha" value="0"/>
             <Launch target="com.wetpet.watch"/>

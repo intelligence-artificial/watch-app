@@ -22,6 +22,7 @@ import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.*
 import kotlinx.coroutines.delay
+import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -31,15 +32,18 @@ fun StatsScreen(
   petStateManager: PetStateManager,
   healthDataManager: HealthDataManager,
   petStatusEngine: PetStatusEngine,
-  onBack: () -> Unit
+  onBack: () -> Unit,
+  onNavigateToHrChart: () -> Unit = {}
 ) {
   val listState = rememberScalingLazyListState()
   val context = LocalContext.current
+  val numFmt = remember { NumberFormat.getNumberInstance(Locale.getDefault()) }
 
+  // Refresh every 5s instead of 3s to reduce lag
   var refreshTick by remember { mutableIntStateOf(0) }
   LaunchedEffect(Unit) {
     while (true) {
-      delay(3000)
+      delay(5000)
       refreshTick++
     }
   }
@@ -52,17 +56,19 @@ fun StatsScreen(
   val floors = remember(refreshTick) { healthDataManager.floorsClimbed }
   val sedentary = remember(refreshTick) { healthDataManager.isSedentary }
 
-  // Debug info
-  val lastUpdate = remember(refreshTick) { healthDataManager.lastDataUpdateMs }
-  val supported = remember(refreshTick) { healthDataManager.supportedTypes }
-  val capChecked = remember(refreshTick) { healthDataManager.capabilitiesChecked }
-  var showDebug by remember { mutableStateOf(false) }
-
   val emotionColor = Color(
     ((emotion.arcColor shr 16) and 0xFF).toInt(),
     ((emotion.arcColor shr 8) and 0xFF).toInt(),
     (emotion.arcColor and 0xFF).toInt()
   )
+
+  // HR zone color
+  val hrColor = when {
+    hr < 70 -> Color(0xFF4488FF)
+    hr < 90 -> Color(0xFF00D68F)
+    hr < 120 -> Color(0xFFFFB800)
+    else -> Color(0xFFFF3366)
+  }
 
   ScalingLazyColumn(
     state = listState,
@@ -73,15 +79,14 @@ fun StatsScreen(
     item {
       Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-          text = "📊 Stats",
+          text = "📊 Stats & Health",
           color = Color(0xFF50E6FF),
-          fontSize = 17.sp,
+          fontSize = 16.sp,
           fontWeight = FontWeight.Bold,
           fontFamily = FontFamily.Monospace,
           textAlign = TextAlign.Center
         )
         Spacer(Modifier.height(2.dp))
-        // Mood badge
         Box(
           modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
@@ -89,9 +94,9 @@ fun StatsScreen(
             .padding(horizontal = 14.dp, vertical = 3.dp)
         ) {
           Text(
-            text = "${emotion.line1}",
+            text = emotion.line1,
             color = emotionColor,
-            fontSize = 12.sp,
+            fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = FontFamily.Monospace
           )
@@ -99,7 +104,68 @@ fun StatsScreen(
       }
     }
 
-    // Fitness card
+    // ── Heart Rate card (tappable → chart) ──
+    item {
+      Box(
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(horizontal = 16.dp, vertical = 4.dp)
+          .clip(RoundedCornerShape(14.dp))
+          .background(hrColor.copy(alpha = 0.06f))
+          .clickable { onNavigateToHrChart() }
+          .padding(12.dp)
+      ) {
+        Column {
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Text(
+              "♥  Heart Rate",
+              color = hrColor,
+              fontSize = 13.sp,
+              fontWeight = FontWeight.Bold,
+              fontFamily = FontFamily.Monospace
+            )
+            Text(
+              "▸",
+              color = hrColor.copy(alpha = 0.5f),
+              fontSize = 14.sp,
+              fontFamily = FontFamily.Monospace
+            )
+          }
+          Spacer(Modifier.height(6.dp))
+          Row(
+            verticalAlignment = Alignment.Bottom
+          ) {
+            Text(
+              text = if (hr > 0) "$hr" else "--",
+              color = Color.White,
+              fontSize = 28.sp,
+              fontWeight = FontWeight.Bold,
+              fontFamily = FontFamily.Monospace
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+              text = "bpm",
+              color = Color.White.copy(alpha = 0.4f),
+              fontSize = 11.sp,
+              fontFamily = FontFamily.Monospace,
+              modifier = Modifier.padding(bottom = 4.dp)
+            )
+          }
+          Text(
+            text = "Tap for chart  →",
+            color = hrColor.copy(alpha = 0.4f),
+            fontSize = 9.sp,
+            fontFamily = FontFamily.Monospace
+          )
+        }
+      }
+    }
+
+    // ── Fitness stats card ──
     item {
       Column(
         modifier = Modifier
@@ -110,26 +176,46 @@ fun StatsScreen(
           .padding(12.dp)
       ) {
         Text(
-          "Fitness",
+          "Activity",
           color = Color(0xFF50E6FF),
           fontSize = 13.sp,
           fontWeight = FontWeight.Bold,
           fontFamily = FontFamily.Monospace
         )
+        Spacer(Modifier.height(8.dp))
+        StatRow("👟", "Steps", numFmt.format(steps), "/ 10,000", Color(0xFF50E6FF))
         Spacer(Modifier.height(6.dp))
-        DataRow("♥  Heart Rate", if (hr > 0) "$hr bpm" else "--", Color(0xFFFF6464))
-        DataRow("👟  Steps", "$steps / 10,000", Color(0xFF50E6FF))
-        DataRow("🔥  Calories", "$calories kcal", Color(0xFFFF9F50))
-        DataRow("🏢  Floors", "$floors", Color(0xFF78FFA0))
-        DataRow(
-          "💤  Sedentary",
-          if (sedentary) "Yes ⚠" else "No ✓",
-          if (sedentary) Color(0xFFFF4646) else Color(0xFF50FF78)
-        )
+        StatRow("🔥", "Calories", numFmt.format(calories), "kcal", Color(0xFFFF9F50))
+        Spacer(Modifier.height(6.dp))
+        StatRow("🏢", "Floors", "$floors", "", Color(0xFF78FFA0))
+        Spacer(Modifier.height(6.dp))
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.SpaceBetween,
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("💤", fontSize = 12.sp)
+            Spacer(Modifier.width(6.dp))
+            Text(
+              "Sedentary",
+              color = Color.White.copy(alpha = 0.6f),
+              fontSize = 12.sp,
+              fontFamily = FontFamily.Monospace
+            )
+          }
+          Text(
+            text = if (sedentary) "Yes ⚠" else "No ✓",
+            color = if (sedentary) Color(0xFFFF4646) else Color(0xFF50FF78),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Monospace
+          )
+        }
       }
     }
 
-    // Pet needs card
+    // ── Pet needs card ──
     item {
       Column(
         modifier = Modifier
@@ -146,126 +232,47 @@ fun StatsScreen(
           fontWeight = FontWeight.Bold,
           fontFamily = FontFamily.Monospace
         )
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(8.dp))
         NeedRow("Hunger", needs.hunger)
         NeedRow("Happiness", needs.happiness)
         NeedRow("Energy", needs.energy)
         NeedRow("Health", needs.health)
         NeedRow("Stress", needs.stress)
-        Spacer(Modifier.height(6.dp))
-        DataRow("⭐  Level", "${needs.level}", Color(0xFFFFE664))
-        DataRow("✦  XP", "${needs.xpTotal}", Color(0xFFFFE664))
-      }
-    }
-
-    // Debug toggle
-    item {
-      Box(
-        modifier = Modifier
-          .fillMaxWidth()
-          .padding(horizontal = 16.dp, vertical = 4.dp)
-          .clip(RoundedCornerShape(14.dp))
-          .background(Color.White.copy(alpha = 0.02f))
-          .clickable { showDebug = !showDebug }
-          .padding(8.dp),
-        contentAlignment = Alignment.Center
-      ) {
-        Text(
-          text = if (showDebug) "▼ Debug Info" else "▶ Debug Info",
-          color = Color.White.copy(alpha = 0.4f),
-          fontSize = 11.sp,
-          fontFamily = FontFamily.Monospace
-        )
-      }
-    }
-
-    // Debug card
-    if (showDebug) {
-      item {
-        val bodySensors = ContextCompat.checkSelfPermission(
-          context, Manifest.permission.BODY_SENSORS
-        ) == PackageManager.PERMISSION_GRANTED
-        val activityRecog = ContextCompat.checkSelfPermission(
-          context, Manifest.permission.ACTIVITY_RECOGNITION
-        ) == PackageManager.PERMISSION_GRANTED
-
-        val lastUpdateText = if (lastUpdate > 0) {
-          SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(lastUpdate))
-        } else {
-          "never"
-        }
-
-        Column(
-          modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF1A0A2E).copy(alpha = 0.6f))
-            .padding(12.dp)
+        Spacer(Modifier.height(8.dp))
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-          Text(
-            "🔧 Debug",
-            color = Color(0xFFB088FF),
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = FontFamily.Monospace
-          )
-          Spacer(Modifier.height(6.dp))
-
-          // Permissions
-          DataRow(
-            "BODY_SENSORS",
-            if (bodySensors) "✓" else "✗",
-            if (bodySensors) Color(0xFF50FF78) else Color(0xFFFF4646)
-          )
-          DataRow(
-            "ACTIVITY_RECOG",
-            if (activityRecog) "✓" else "✗",
-            if (activityRecog) Color(0xFF50FF78) else Color(0xFFFF4646)
-          )
-
-          Spacer(Modifier.height(4.dp))
-
-          // Capabilities
-          DataRow(
-            "Cap checked",
-            if (capChecked) "✓" else "✗",
-            if (capChecked) Color(0xFF50FF78) else Color(0xFFFFE650)
-          )
-          DataRow(
-            "Types",
-            "${supported.size}",
-            Color(0xFF50E6FF)
-          )
-
-          // Supported types list
-          if (supported.isNotEmpty()) {
-            Spacer(Modifier.height(2.dp))
-            for (type in supported.take(6)) {
-              Text(
-                text = "  • $type",
-                color = Color.White.copy(alpha = 0.3f),
-                fontSize = 9.sp,
-                fontFamily = FontFamily.Monospace
-              )
-            }
+          Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+              "LV",
+              color = Color(0xFFFFE664).copy(alpha = 0.5f),
+              fontSize = 9.sp,
+              fontFamily = FontFamily.Monospace
+            )
+            Text(
+              "${needs.level}",
+              color = Color(0xFFFFE664),
+              fontSize = 18.sp,
+              fontWeight = FontWeight.Bold,
+              fontFamily = FontFamily.Monospace
+            )
           }
-
-          Spacer(Modifier.height(4.dp))
-          DataRow("Last data", lastUpdateText, Color(0xFF50E6FF))
-
-          // Raw values
-          Spacer(Modifier.height(4.dp))
-          Text(
-            "Raw Values",
-            color = Color(0xFFB088FF).copy(alpha = 0.7f),
-            fontSize = 10.sp,
-            fontFamily = FontFamily.Monospace
-          )
-          DataRow("HR raw", "$hr", Color.White.copy(alpha = 0.5f))
-          DataRow("Steps raw", "$steps", Color.White.copy(alpha = 0.5f))
-          DataRow("Cal raw", "$calories", Color.White.copy(alpha = 0.5f))
-          DataRow("Floors raw", "$floors", Color.White.copy(alpha = 0.5f))
+          Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+              "XP",
+              color = Color(0xFFFFE664).copy(alpha = 0.5f),
+              fontSize = 9.sp,
+              fontFamily = FontFamily.Monospace
+            )
+            Text(
+              "${needs.xpTotal}",
+              color = Color(0xFFFFE664),
+              fontSize = 18.sp,
+              fontWeight = FontWeight.Bold,
+              fontFamily = FontFamily.Monospace
+            )
+          }
         }
       }
     }
@@ -273,24 +280,47 @@ fun StatsScreen(
 }
 
 @Composable
-private fun DataRow(label: String, value: String, color: Color) {
+private fun StatRow(
+  icon: String,
+  label: String,
+  value: String,
+  unit: String,
+  color: Color
+) {
   Row(
+    modifier = Modifier.fillMaxWidth(),
     horizontalArrangement = Arrangement.SpaceBetween,
-    modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)
+    verticalAlignment = Alignment.CenterVertically
   ) {
-    Text(
-      text = label,
-      color = Color.White.copy(alpha = 0.6f),
-      fontSize = 12.sp,
-      fontFamily = FontFamily.Monospace
-    )
-    Text(
-      text = value,
-      color = color,
-      fontSize = 12.sp,
-      fontWeight = FontWeight.Bold,
-      fontFamily = FontFamily.Monospace
-    )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+      Text(icon, fontSize = 12.sp)
+      Spacer(Modifier.width(6.dp))
+      Text(
+        text = label,
+        color = Color.White.copy(alpha = 0.6f),
+        fontSize = 12.sp,
+        fontFamily = FontFamily.Monospace
+      )
+    }
+    Row(verticalAlignment = Alignment.Bottom) {
+      Text(
+        text = value,
+        color = color,
+        fontSize = 14.sp,
+        fontWeight = FontWeight.Bold,
+        fontFamily = FontFamily.Monospace
+      )
+      if (unit.isNotEmpty()) {
+        Spacer(Modifier.width(3.dp))
+        Text(
+          text = unit,
+          color = color.copy(alpha = 0.45f),
+          fontSize = 9.sp,
+          fontFamily = FontFamily.Monospace,
+          modifier = Modifier.padding(bottom = 1.dp)
+        )
+      }
+    }
   }
 }
 

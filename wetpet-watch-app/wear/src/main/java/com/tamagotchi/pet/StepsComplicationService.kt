@@ -1,7 +1,9 @@
 package com.tamagotchi.pet
 
+import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import androidx.wear.watchface.complications.data.ComplicationData
 import androidx.wear.watchface.complications.data.ComplicationType
 import androidx.wear.watchface.complications.data.PlainComplicationText
@@ -13,7 +15,7 @@ import androidx.wear.watchface.complications.datasource.ComplicationRequest
 
 /**
  * Serves the WetPet's daily steps as a custom complication.
- * Uses RANGED_VALUE (0–10000 scale) for arc indicators, or SHORT_TEXT for numerical display.
+ * Tapping opens the WetPet app (not Fitbit).
  */
 class StepsComplicationService : ComplicationDataSourceService() {
 
@@ -24,6 +26,21 @@ class StepsComplicationService : ComplicationDataSourceService() {
       ComplicationDataSourceUpdateRequester.create(context, component)
         .requestUpdateAll()
     }
+  }
+
+  /** PendingIntent that opens WetPet app */
+  private fun createTapIntent(): PendingIntent {
+    val intent = packageManager.getLaunchIntentForPackage(packageName)
+      ?: Intent().apply {
+        setClassName(packageName, "com.tamagotchi.pet.MainActivity")
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      }
+    return PendingIntent.getActivity(
+      this,
+      1002,
+      intent,
+      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
   }
 
   override fun getPreviewData(type: ComplicationType): ComplicationData? {
@@ -52,6 +69,7 @@ class StepsComplicationService : ComplicationDataSourceService() {
   ) {
     val prefs = getSharedPreferences(HealthDataManager.PREFS_NAME, Context.MODE_PRIVATE)
     val steps = prefs.getInt(HealthDataManager.KEY_DAILY_STEPS, 0)
+    val tapAction = createTapIntent()
 
     val data = when (request.complicationType) {
       ComplicationType.RANGED_VALUE -> RangedValueComplicationData.Builder(
@@ -61,20 +79,25 @@ class StepsComplicationService : ComplicationDataSourceService() {
         contentDescription = PlainComplicationText.Builder("Steps: $steps").build()
       )
         .setText(PlainComplicationText.Builder(steps.toString()).build())
+        .setTapAction(tapAction)
         .build()
 
       ComplicationType.SHORT_TEXT -> {
         ShortTextComplicationData.Builder(
           text = PlainComplicationText.Builder(steps.toString()).build(),
           contentDescription = PlainComplicationText.Builder("Steps: $steps").build()
-        ).build()
+        )
+          .setTapAction(tapAction)
+          .build()
       }
 
       else -> {
         ShortTextComplicationData.Builder(
           text = PlainComplicationText.Builder("--").build(),
           contentDescription = PlainComplicationText.Builder("Steps").build()
-        ).build()
+        )
+          .setTapAction(tapAction)
+          .build()
       }
     }
 

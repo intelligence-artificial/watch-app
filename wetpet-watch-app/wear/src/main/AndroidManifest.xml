@@ -41,6 +41,19 @@
             </intent-filter>
         </activity>
 
+        <!-- Trampoline: WFF Launch -> opens app to Stats screen -->
+        <activity
+            android:name=".StatsLaunchActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:taskAffinity=""
+            android:label="WetPet Stats">
+            <intent-filter>
+                <action android:name="com.wetpet.watch.ACTION_STATS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
         <!-- Background passive health data service -->
         <service
             android:name=".PassiveDataService"
@@ -135,7 +148,7 @@
             </intent-filter>
             <meta-data
                 android:name="android.support.wearable.complications.SUPPORTED_TYPES"
-                android:value="SHORT_TEXT" />
+                android:value="SHORT_TEXT,RANGED_VALUE" />
             <meta-data
                 android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
                 android:value="30" />
