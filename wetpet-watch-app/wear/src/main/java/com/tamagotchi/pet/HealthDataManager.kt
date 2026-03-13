@@ -76,6 +76,8 @@ class HealthDataManager(private val context: Context) {
 
   // HR history for chart
   val hrHistoryStore = HrHistoryStore(context)
+  // Steps history for chart
+  val stepsHistoryStore = StepsHistoryStore(context)
 
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
   private val passiveClient: PassiveMonitoringClient =
@@ -109,6 +111,7 @@ class HealthDataManager(private val context: Context) {
       // Force complication binding on app start
       HeartRateComplicationService.requestUpdate(context)
       PetComplicationService.requestUpdate(context)
+      StepsComplicationService.requestUpdate(context)
     }
   }
 
@@ -219,7 +222,9 @@ class HealthDataManager(private val context: Context) {
         isSedentary = false
       }
       dailySteps = latest
+      stepsHistoryStore.append(latest)
       Log.d(TAG, "Steps: $dailySteps")
+      StepsComplicationService.requestUpdate(context)
     }
 
     // Calories

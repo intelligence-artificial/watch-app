@@ -68,6 +68,19 @@
             </intent-filter>
         </activity>
 
+        <!-- Trampoline: BPM complication tap -> opens app to HR Chart -->
+        <activity
+            android:name=".HrChartLaunchActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:taskAffinity=""
+            android:label="WetPet HR Chart">
+            <intent-filter>
+                <action android:name="com.wetpet.watch.ACTION_HR_CHART" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
         <!-- Background passive health data service -->
         <service
             android:name=".PassiveDataService"

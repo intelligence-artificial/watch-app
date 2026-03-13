@@ -92,10 +92,11 @@ class MainActivity : ComponentActivity() {
    */
   private fun resolveNavTarget(intent: Intent?): String? {
     return when (intent?.getStringExtra("navigate_to")) {
-      "home" -> "home"         // Pet tap: go to home
+      "home" -> "home"
       "stats" -> "stats"
       "hr_chart" -> "hr_chart"
-      else -> "hr_chart"       // WFF Launch fallback (BPM tap): go to HR chart
+      "steps_chart" -> "steps_chart"
+      else -> "home"       // WFF Launch fallback (BPM tap): go to HR chart
     }
   }
 

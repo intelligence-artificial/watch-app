@@ -28,13 +28,13 @@ class StepsComplicationService : ComplicationDataSourceService() {
     }
   }
 
-  /** PendingIntent that opens WetPet app */
+  /** PendingIntent that opens WetPet → Stats screen */
   private fun createTapIntent(): PendingIntent {
-    val intent = packageManager.getLaunchIntentForPackage(packageName)
-      ?: Intent().apply {
-        setClassName(packageName, "com.tamagotchi.pet.MainActivity")
-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-      }
+    val intent = Intent().apply {
+      setClassName(packageName, "com.tamagotchi.pet.MainActivity")
+      putExtra("navigate_to", "stats")
+      addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+    }
     return PendingIntent.getActivity(
       this,
       1002,

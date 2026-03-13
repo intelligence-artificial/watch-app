@@ -4,19 +4,25 @@
     384×384 Pixel Watch 2
 
     ═══════════════════════════════════════════
-    COMPLICATION MAP (2 slots + battery)
+    COMPLICATION MAP (3 slots + battery)
     ═══════════════════════════════════════════
 
     SLOT 0 — "WetPet Pet"
       Position: Center (x=152 y=56, 80×80)
       Service:  PetComplicationService (SMALL_IMAGE)
-      Tap:      Opens WetPet app (Launch overlay at x=137 y=41)
+      Tap:      HomeLaunchActivity trampoline → home screen
 
     SLOT 1 — "Heart Rate BPM"
       Position: Top-left (x=42 y=46, 90×90)
       Service:  HeartRateComplicationService (SHORT_TEXT)
-      Tap:      Complication tapAction → Stats screen
+      Tap:      Launch → hr_chart (default) or tapAction → hr_chart
       Fallback: Static ".. BPM" with red ring (shows when unbound)
+
+    SLOT 2 — "Steps"
+      Position: Top-right (x=252 y=46, 90×90)
+      Service:  StepsComplicationService (SHORT_TEXT)
+      Tap:      Launch → hr_chart (default) or tapAction → stats
+      Fallback: Static ".. STEPS" with cyan ring (shows when unbound)
 
     BATTERY — Static WFF (no ComplicationSlot)
       Position: Bottom-center (x=132 y=265, 120×30)
@@ -295,16 +301,97 @@
             <Complication type="EMPTY"/>
         </ComplicationSlot>
 
-        <!-- Layer 3: Tap overlay for HR area — opens WetPet app -->
+        <!-- Layer 3: Tap overlay for HR area — HrChartLaunchActivity trampoline -->
         <Group x="42" y="46" width="90" height="90">
             <Variant mode="AMBIENT" target="alpha" value="0"/>
-            <Launch target="com.wetpet.watch"/>
+            <Launch target="com.wetpet.watch/com.tamagotchi.pet.HrChartLaunchActivity"/>
         </Group>
 
 
+        <!-- ════════════════════════════════════════════ -->
+        <!--  STEPS (top right)                          -->
+        <!--  Layer 1: Static fallback (always visible)  -->
+        <!--  Layer 2: ComplicationSlot (shows steps)    -->
+        <!--  Layer 3: Tap overlay                       -->
+        <!-- ════════════════════════════════════════════ -->
 
+        <!-- Layer 1: Static fallback — always renders -->
+        <Group x="252" y="46" width="90" height="90">
+            <!-- Steps outline ring (cyan) -->
+            <PartDraw x="3" y="3" width="84" height="84">
+                <Arc centerX="42" centerY="42" width="84" height="84"
+                     startAngle="0" endAngle="360" thickness="7">
+                    <Stroke color="#5500D68F" cap="ROUND"/>
+                </Arc>
+            </PartDraw>
+            <!-- Dash placeholder -->
+            <PartText x="5" y="14" width="80" height="34">
+                <Text align="CENTER">
+                    <Font family="SYNC_TO_DEVICE" size="22" color="#BBffffff" weight="BOLD">
+                        <Template>--</Template>
+                    </Font>
+                </Text>
+            </PartText>
+            <!-- STEPS label -->
+            <PartText x="5" y="50" width="80" height="16">
+                <Text align="CENTER">
+                    <Font family="SYNC_TO_DEVICE" size="11" color="#8800D68F" weight="BOLD">
+                        <Template>STEPS</Template>
+                    </Font>
+                </Text>
+            </PartText>
+            <Variant mode="AMBIENT" target="alpha" value="0"/>
+        </Group>
 
+        <!-- Layer 2: ComplicationSlot — shows actual step count when bound -->
+        <ComplicationSlot
+            x="252" y="46" width="90" height="90"
+            slotId="2"
+            displayName="Steps"
+            isConfigurable="false"
+            supportedTypes="SHORT_TEXT RANGED_VALUE EMPTY"
+            defaultDataSource="com.wetpet.watch/com.tamagotchi.pet.StepsComplicationService"
+            defaultDataSourceType="SHORT_TEXT">
+            <BoundingOval x="0" y="0" width="90" height="90" outlinePadding="2"/>
+            <DefaultProviderPolicy
+                defaultSystemProvider="EMPTY"
+                defaultSystemProviderType="SHORT_TEXT"/>
+            <Complication type="SHORT_TEXT">
+                <!-- Steps outline ring (cyan, brighter when bound) -->
+                <PartDraw x="3" y="3" width="84" height="84">
+                    <Arc centerX="42" centerY="42" width="84" height="84"
+                         startAngle="0" endAngle="360" thickness="7">
+                        <Stroke color="#AA00D68F" cap="ROUND"/>
+                    </Arc>
+                </PartDraw>
+                <!-- Step count number -->
+                <PartText x="5" y="14" width="80" height="34">
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="20" color="#FFffffff" weight="BOLD">
+                            <Template>[COMPLICATION.SHORT_TEXT]</Template>
+                        </Font>
+                    </Text>
+                </PartText>
+                <!-- STEPS label -->
+                <PartText x="5" y="50" width="80" height="16">
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="11" color="#8800D68F" weight="BOLD">
+                            <Template>STEPS</Template>
+                        </Font>
+                    </Text>
+                </PartText>
+                <Variant mode="AMBIENT" target="alpha" value="0"/>
+            </Complication>
 
+            <!-- EMPTY: transparent so static fallback shows through -->
+            <Complication type="EMPTY"/>
+        </ComplicationSlot>
+
+        <!-- Layer 3: Tap overlay for Steps area — StatsLaunchActivity trampoline -->
+        <Group x="252" y="46" width="90" height="90">
+            <Variant mode="AMBIENT" target="alpha" value="0"/>
+            <Launch target="com.wetpet.watch/com.tamagotchi.pet.StatsLaunchActivity"/>
+        </Group>
 
 
 

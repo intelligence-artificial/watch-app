@@ -66,6 +66,10 @@ fun WetPetWearApp(
               navController.navigate("stats")
               navController.navigate("hr_chart")
             }
+            "steps_chart" -> {
+              navController.navigate("stats")
+              navController.navigate("steps_chart")
+            }
           }
 
           // Consume the event so it doesn't fire again
@@ -115,6 +119,15 @@ fun WetPetWearApp(
         HrChartScreen(
           hrHistoryStore = healthDataManager.hrHistoryStore,
           currentBpm = healthDataManager.heartRate,
+          onBack = { navController.popBackStack() }
+        )
+      }
+
+      // ── SCREEN: Steps Chart Detail ──
+      composable("steps_chart") {
+        StepsChartScreen(
+          stepsHistoryStore = healthDataManager.stepsHistoryStore,
+          currentSteps = healthDataManager.dailySteps,
           onBack = { navController.popBackStack() }
         )
       }
