@@ -108,6 +108,7 @@ class HealthDataManager(private val context: Context) {
       }
       // Force complication binding on app start
       HeartRateComplicationService.requestUpdate(context)
+      PetComplicationService.requestUpdate(context)
     }
   }
 

@@ -389,10 +389,12 @@
         </PartImage>
 
 
-        <!-- SLOT 0 TAP: Pet tap opens WetPet home -->
+
+        <!-- SLOT 0 TAP: Pet complication tap — opens WetPet home -->
+        <!-- Uses HomeLaunchActivity trampoline to route to home screen -->
         <Group x="137" y="41" width="110" height="110">
             <Variant mode="AMBIENT" target="alpha" value="0"/>
-            <Launch target="com.wetpet.watch"/>
+            <Launch target="com.wetpet.watch/com.tamagotchi.pet.HomeLaunchActivity"/>
         </Group>
 
         <!--  DIGITAL CLOCK                              -->

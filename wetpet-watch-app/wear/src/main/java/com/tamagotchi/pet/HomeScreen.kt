@@ -42,7 +42,7 @@ fun HomeScreen(
   onNavigateToHrChart: () -> Unit
 ) {
   val context = LocalContext.current
-  val listState = rememberScalingLazyListState()
+  val listState = rememberScalingLazyListState(initialCenterItemIndex = 0)
   val scope = rememberCoroutineScope()
 
   // Track previous emotion to detect changes

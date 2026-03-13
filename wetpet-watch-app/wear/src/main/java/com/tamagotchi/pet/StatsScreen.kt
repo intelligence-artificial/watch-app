@@ -35,7 +35,7 @@ fun StatsScreen(
   onBack: () -> Unit,
   onNavigateToHrChart: () -> Unit = {}
 ) {
-  val listState = rememberScalingLazyListState()
+  val listState = rememberScalingLazyListState(initialCenterItemIndex = 0)
   val context = LocalContext.current
   val numFmt = remember { NumberFormat.getNumberInstance(Locale.getDefault()) }
 

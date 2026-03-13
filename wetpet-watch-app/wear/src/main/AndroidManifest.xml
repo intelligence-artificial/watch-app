@@ -34,6 +34,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
+            android:launchMode="singleTask"
             android:taskAffinity="">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -50,6 +51,19 @@
             android:label="WetPet Stats">
             <intent-filter>
                 <action android:name="com.wetpet.watch.ACTION_STATS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- Trampoline: Pet complication tap -> opens app to Home screen -->
+        <activity
+            android:name=".HomeLaunchActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:taskAffinity=""
+            android:label="WetPet Home">
+            <intent-filter>
+                <action android:name="com.wetpet.watch.ACTION_HOME" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>

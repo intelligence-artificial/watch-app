@@ -52,7 +52,7 @@ fun HrChartScreen(
   currentBpm: Int,
   onBack: () -> Unit
 ) {
-  val listState = rememberScalingLazyListState()
+  val listState = rememberScalingLazyListState(initialCenterItemIndex = 0)
 
   var refreshTick by remember { mutableIntStateOf(0) }
   LaunchedEffect(Unit) {
