@@ -32,15 +32,19 @@ class PetConfigProvider : ContentProvider() {
         selectionArgs: Array<out String>?,
         sortOrder: String?
     ): Cursor {
-        val ctx = context ?: return MatrixCursor(arrayOf("pet_type", "color_theme", "emotion"))
+        val ctx = context ?: return MatrixCursor(arrayOf("pet_type", "color_theme", "emotion", "calories", "steps", "heart_rate"))
         val prefs = ctx.getSharedPreferences(DataLayerPaths.PREFS_NAME, Context.MODE_PRIVATE)
+        val healthPrefs = ctx.getSharedPreferences(HealthDataManager.PREFS_NAME, Context.MODE_PRIVATE)
 
         val petType = prefs.getString("pet_type", "DOG") ?: "DOG"
         val colorTheme = prefs.getString(DataLayerPaths.KEY_COLOR_THEME, "GREEN") ?: "GREEN"
         val emotion = prefs.getString(DataLayerPaths.KEY_EMOTION, "IDLE") ?: "IDLE"
+        val calories = healthPrefs.getInt(HealthDataManager.KEY_CALORIES, 0)
+        val steps = healthPrefs.getInt(HealthDataManager.KEY_DAILY_STEPS, 0)
+        val heartRate = healthPrefs.getInt(HealthDataManager.KEY_HEART_RATE, 0)
 
-        val cursor = MatrixCursor(arrayOf("pet_type", "color_theme", "emotion"))
-        cursor.addRow(arrayOf(petType, colorTheme, emotion))
+        val cursor = MatrixCursor(arrayOf("pet_type", "color_theme", "emotion", "calories", "steps", "heart_rate"))
+        cursor.addRow(arrayOf(petType, colorTheme, emotion, calories, steps, heartRate))
         return cursor
     }
 

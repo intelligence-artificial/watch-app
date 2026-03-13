@@ -6,18 +6,24 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.rotary.onRotaryScrollEvent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
@@ -44,17 +50,20 @@ fun HomeScreen(
   val context = LocalContext.current
   val listState = rememberScalingLazyListState(initialCenterItemIndex = 0)
   val scope = rememberCoroutineScope()
+  val focusRequester = remember { FocusRequester() }
+
+  LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
   // Track previous emotion to detect changes
   var prevEmotion by remember { mutableStateOf(petStatusEngine.currentEmotion) }
 
   // (Health Connect reader removed to decouple from Fitbit)
 
-  // Update engine every 5s (reduced from 2s to fix lag)
+  // Update engine every 15s (reduced frequency to improve scroll smoothness)
   var tick by remember { mutableIntStateOf(0) }
   LaunchedEffect(Unit) {
     while (true) {
-      delay(5000)
+      delay(15000)
       petStatusEngine.update(healthDataManager.snapshot())
       val newEmotion = petStatusEngine.currentEmotion
       petStateManager.saveEmotion(newEmotion)
@@ -153,9 +162,17 @@ fun HomeScreen(
   ScalingLazyColumn(
     state = listState,
     horizontalAlignment = Alignment.CenterHorizontally,
+    autoCentering = null,
+    contentPadding = PaddingValues(top = 8.dp, bottom = 48.dp),
     modifier = Modifier
       .fillMaxSize()
       .background(Color(0xFF020206))
+      .onRotaryScrollEvent { event ->
+        scope.launch { listState.scroll(MutatePriority.UserInput) { scrollBy(event.verticalScrollPixels) } }
+        true
+      }
+      .focusRequester(focusRequester)
+      .focusable()
   ) {
     // ── Hero: Arc Rings + Pet ──
     item(key = "hero") {

@@ -114,7 +114,9 @@ fun WetPetWearApp(
           healthDataManager = healthDataManager,
           petStatusEngine = petStatusEngine,
           onBack = { navController.popBackStack() },
-          onNavigateToHrChart = { navController.navigate("hr_chart") }
+          onNavigateToHrChart = { navController.navigate("hr_chart") },
+          onNavigateToStepsChart = { navController.navigate("steps_chart") },
+          onNavigateToCalChart = { navController.navigate("cal_chart") }
         )
       }
 

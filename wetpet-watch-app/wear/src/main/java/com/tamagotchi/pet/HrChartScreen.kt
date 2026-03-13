@@ -2,17 +2,23 @@ package com.tamagotchi.pet
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.rotary.onRotaryScrollEvent
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -22,6 +28,7 @@ import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.Text
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -53,6 +60,10 @@ fun HrChartScreen(
   onBack: () -> Unit
 ) {
   val listState = rememberScalingLazyListState(initialCenterItemIndex = 0)
+  val coroutineScope = rememberCoroutineScope()
+  val focusRequester = remember { FocusRequester() }
+
+  LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
   var refreshTick by remember { mutableIntStateOf(0) }
   LaunchedEffect(Unit) {
@@ -69,10 +80,18 @@ fun HrChartScreen(
   ScalingLazyColumn(
     state = listState,
     horizontalAlignment = Alignment.CenterHorizontally,
+    autoCentering = null,
+    contentPadding = PaddingValues(top = 24.dp, bottom = 48.dp),
     modifier = Modifier
       .fillMaxSize()
       .background(Color(0xFF020206))
       .padding(horizontal = 8.dp)
+      .onRotaryScrollEvent { event ->
+        coroutineScope.launch { listState.scroll(MutatePriority.UserInput) { scrollBy(event.verticalScrollPixels) } }
+        true
+      }
+      .focusRequester(focusRequester)
+      .focusable()
   ) {
     // ── Header: current BPM ──
     item {

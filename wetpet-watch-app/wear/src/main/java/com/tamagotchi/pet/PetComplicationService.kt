@@ -67,16 +67,17 @@ class PetComplicationService : ComplicationDataSourceService() {
       else -> PetMood.CONTENT
     }
 
-    // Build sprite name
+    // Build sprite name — alternate between idle frames for animation
     val prefix = when (petType) {
       PetType.BLOB -> "pet"
       PetType.CAT -> "cat"
       PetType.DOG -> "dog"
     }
     val suffix = "_${colorTheme.name.lowercase()}"
+    val frame = if ((System.currentTimeMillis() / 1000) % 2 == 0L) "1" else "2"
     val spriteName = when (mood) {
       PetMood.SLEEPING, PetMood.TIRED, PetMood.HUNGRY -> "${prefix}_sleep$suffix"
-      else -> "${prefix}_idle_1$suffix"
+      else -> "${prefix}_idle_${frame}$suffix"
     }
 
     val resId = resources.getIdentifier(spriteName, "drawable", packageName)

@@ -4,13 +4,19 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.rotary.onRotaryScrollEvent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -22,6 +28,7 @@ import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -33,17 +40,23 @@ fun StatsScreen(
   healthDataManager: HealthDataManager,
   petStatusEngine: PetStatusEngine,
   onBack: () -> Unit,
-  onNavigateToHrChart: () -> Unit = {}
+  onNavigateToHrChart: () -> Unit = {},
+  onNavigateToStepsChart: () -> Unit = {},
+  onNavigateToCalChart: () -> Unit = {},
 ) {
   val listState = rememberScalingLazyListState(initialCenterItemIndex = 0)
   val context = LocalContext.current
   val numFmt = remember { NumberFormat.getNumberInstance(Locale.getDefault()) }
+  val coroutineScope = rememberCoroutineScope()
+  val focusRequester = remember { FocusRequester() }
 
-  // Refresh every 5s instead of 3s to reduce lag
+  LaunchedEffect(Unit) { focusRequester.requestFocus() }
+
+  // Refresh every 15s to reduce recomposition jank
   var refreshTick by remember { mutableIntStateOf(0) }
   LaunchedEffect(Unit) {
     while (true) {
-      delay(5000)
+      delay(15000)
       refreshTick++
     }
   }
@@ -73,7 +86,17 @@ fun StatsScreen(
   ScalingLazyColumn(
     state = listState,
     horizontalAlignment = Alignment.CenterHorizontally,
-    modifier = Modifier.fillMaxSize().background(Color(0xFF020206))
+    autoCentering = null,
+    contentPadding = PaddingValues(top = 24.dp, bottom = 48.dp),
+    modifier = Modifier
+      .fillMaxSize()
+      .background(Color(0xFF020206))
+      .onRotaryScrollEvent { event ->
+        coroutineScope.launch { listState.scroll(MutatePriority.UserInput) { scrollBy(event.verticalScrollPixels) } }
+        true
+      }
+      .focusRequester(focusRequester)
+      .focusable()
   ) {
     // Header
     item {
@@ -165,7 +188,125 @@ fun StatsScreen(
       }
     }
 
-    // ── Fitness stats card ──
+    // ── Steps card (tappable → chart) ──
+    item {
+      Box(
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(horizontal = 16.dp, vertical = 4.dp)
+          .clip(RoundedCornerShape(14.dp))
+          .background(Color(0xFF00D68F).copy(alpha = 0.06f))
+          .clickable { onNavigateToStepsChart() }
+          .padding(12.dp)
+      ) {
+        Column {
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Text(
+              "👟  Steps",
+              color = Color(0xFF00D68F),
+              fontSize = 13.sp,
+              fontWeight = FontWeight.Bold,
+              fontFamily = FontFamily.Monospace
+            )
+            Text(
+              "▸",
+              color = Color(0xFF00D68F).copy(alpha = 0.5f),
+              fontSize = 14.sp,
+              fontFamily = FontFamily.Monospace
+            )
+          }
+          Spacer(Modifier.height(6.dp))
+          Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+              text = if (steps > 0) numFmt.format(steps) else "--",
+              color = Color.White,
+              fontSize = 28.sp,
+              fontWeight = FontWeight.Bold,
+              fontFamily = FontFamily.Monospace
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+              text = "/ 10,000",
+              color = Color.White.copy(alpha = 0.4f),
+              fontSize = 11.sp,
+              fontFamily = FontFamily.Monospace,
+              modifier = Modifier.padding(bottom = 4.dp)
+            )
+          }
+          Text(
+            text = "Tap for chart  →",
+            color = Color(0xFF00D68F).copy(alpha = 0.4f),
+            fontSize = 9.sp,
+            fontFamily = FontFamily.Monospace
+          )
+        }
+      }
+    }
+
+    // ── Calories card (tappable → chart) ──
+    item {
+      Box(
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(horizontal = 16.dp, vertical = 4.dp)
+          .clip(RoundedCornerShape(14.dp))
+          .background(Color(0xFFFF6B35).copy(alpha = 0.06f))
+          .clickable { onNavigateToCalChart() }
+          .padding(12.dp)
+      ) {
+        Column {
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Text(
+              "🔥  Calories",
+              color = Color(0xFFFF6B35),
+              fontSize = 13.sp,
+              fontWeight = FontWeight.Bold,
+              fontFamily = FontFamily.Monospace
+            )
+            Text(
+              "▸",
+              color = Color(0xFFFF6B35).copy(alpha = 0.5f),
+              fontSize = 14.sp,
+              fontFamily = FontFamily.Monospace
+            )
+          }
+          Spacer(Modifier.height(6.dp))
+          Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+              text = if (calories > 0) numFmt.format(calories) else "--",
+              color = Color.White,
+              fontSize = 28.sp,
+              fontWeight = FontWeight.Bold,
+              fontFamily = FontFamily.Monospace
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+              text = "kcal",
+              color = Color.White.copy(alpha = 0.4f),
+              fontSize = 11.sp,
+              fontFamily = FontFamily.Monospace,
+              modifier = Modifier.padding(bottom = 4.dp)
+            )
+          }
+          Text(
+            text = "Tap for chart  →",
+            color = Color(0xFFFF6B35).copy(alpha = 0.4f),
+            fontSize = 9.sp,
+            fontFamily = FontFamily.Monospace
+          )
+        }
+      }
+    }
+
+    // ── Other activity stats ──
     item {
       Column(
         modifier = Modifier
@@ -175,18 +316,6 @@ fun StatsScreen(
           .background(Color.White.copy(alpha = 0.04f))
           .padding(12.dp)
       ) {
-        Text(
-          "Activity",
-          color = Color(0xFF50E6FF),
-          fontSize = 13.sp,
-          fontWeight = FontWeight.Bold,
-          fontFamily = FontFamily.Monospace
-        )
-        Spacer(Modifier.height(8.dp))
-        StatRow("👟", "Steps", numFmt.format(steps), "/ 10,000", Color(0xFF50E6FF))
-        Spacer(Modifier.height(6.dp))
-        StatRow("🔥", "Calories", numFmt.format(calories), "kcal", Color(0xFFFF9F50))
-        Spacer(Modifier.height(6.dp))
         StatRow("🏢", "Floors", "$floors", "", Color(0xFF78FFA0))
         Spacer(Modifier.height(6.dp))
         Row(
