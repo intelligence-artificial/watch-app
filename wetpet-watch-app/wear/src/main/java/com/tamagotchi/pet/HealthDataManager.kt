@@ -78,6 +78,8 @@ class HealthDataManager(private val context: Context) {
   val hrHistoryStore = HrHistoryStore(context)
   // Steps history for chart
   val stepsHistoryStore = StepsHistoryStore(context)
+  // Calories history for chart
+  val caloriesHistoryStore = CaloriesHistoryStore(context)
 
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
   private val passiveClient: PassiveMonitoringClient =
@@ -112,6 +114,7 @@ class HealthDataManager(private val context: Context) {
       HeartRateComplicationService.requestUpdate(context)
       PetComplicationService.requestUpdate(context)
       StepsComplicationService.requestUpdate(context)
+      CaloriesComplicationService.requestUpdate(context)
     }
   }
 
@@ -232,7 +235,9 @@ class HealthDataManager(private val context: Context) {
       val calPoints = dataPoints.getData(DataType.CALORIES_DAILY)
       if (calPoints.isNotEmpty()) {
         calories = calPoints.last().value.toInt()
+        caloriesHistoryStore.append(calories)
         Log.d(TAG, "Calories: $calories")
+        CaloriesComplicationService.requestUpdate(context)
       }
     } catch (e: Exception) { Log.w(TAG, "Calories not available") }
 

@@ -96,6 +96,7 @@ class MainActivity : ComponentActivity() {
       "stats" -> "stats"
       "hr_chart" -> "hr_chart"
       "steps_chart" -> "steps_chart"
+      "cal_chart" -> "cal_chart"
       else -> "home"       // WFF Launch fallback (BPM tap): go to HR chart
     }
   }

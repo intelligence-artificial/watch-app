@@ -81,6 +81,19 @@
             </intent-filter>
         </activity>
 
+        <!-- Trampoline: Calories complication tap -> opens app to Cal Chart -->
+        <activity
+            android:name=".CaloriesLaunchActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:taskAffinity=""
+            android:label="WetPet Calories">
+            <intent-filter>
+                <action android:name="com.wetpet.watch.ACTION_CAL_CHART" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
         <!-- Background passive health data service -->
         <service
             android:name=".PassiveDataService"
@@ -169,6 +182,23 @@
             android:name=".HeartRateComplicationService"
             android:exported="true"
             android:label="WetPet HR"
+            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+            <intent-filter>
+                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+            </intent-filter>
+            <meta-data
+                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+                android:value="SHORT_TEXT,RANGED_VALUE" />
+            <meta-data
+                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+                android:value="30" />
+        </service>
+
+        <!-- Complication: serves calories to the watch face -->
+        <service
+            android:name=".CaloriesComplicationService"
+            android:exported="true"
+            android:label="WetPet Calories"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
             <intent-filter>
                 <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />

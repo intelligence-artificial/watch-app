@@ -4,7 +4,7 @@
     384×384 Pixel Watch 2
 
     ═══════════════════════════════════════════
-    COMPLICATION MAP (3 slots + battery)
+    COMPLICATION MAP (4 slots + battery)
     ═══════════════════════════════════════════
 
     SLOT 0 — "WetPet Pet"
@@ -394,6 +394,82 @@
         </Group>
 
 
+        <!-- ════════════════════════════════════════════ -->
+        <!--  CALORIES (bottom left)                     -->
+        <!--  Layer 1: Static fallback (always visible)  -->
+        <!--  Layer 2: ComplicationSlot (shows calories)  -->
+        <!--  Layer 3: Tap overlay                       -->
+        <!-- ════════════════════════════════════════════ -->
+
+        <!-- Layer 1: Static fallback -->
+        <Group x="42" y="200" width="90" height="90">
+            <PartDraw x="3" y="3" width="84" height="84">
+                <Arc centerX="42" centerY="42" width="84" height="84"
+                     startAngle="0" endAngle="360" thickness="7">
+                    <Stroke color="#55FF6B35" cap="ROUND"/>
+                </Arc>
+            </PartDraw>
+            <PartText x="5" y="14" width="80" height="34">
+                <Text align="CENTER">
+                    <Font family="SYNC_TO_DEVICE" size="22" color="#BBffffff" weight="BOLD">
+                        <Template>--</Template>
+                    </Font>
+                </Text>
+            </PartText>
+            <PartText x="5" y="50" width="80" height="16">
+                <Text align="CENTER">
+                    <Font family="SYNC_TO_DEVICE" size="11" color="#88FF6B35" weight="BOLD">
+                        <Template>KCAL</Template>
+                    </Font>
+                </Text>
+            </PartText>
+            <Variant mode="AMBIENT" target="alpha" value="0"/>
+        </Group>
+
+        <!-- Layer 2: ComplicationSlot -->
+        <ComplicationSlot
+            x="42" y="200" width="90" height="90"
+            slotId="3"
+            displayName="Calories"
+            isConfigurable="false"
+            supportedTypes="SHORT_TEXT RANGED_VALUE EMPTY"
+            defaultDataSource="com.wetpet.watch/com.tamagotchi.pet.CaloriesComplicationService"
+            defaultDataSourceType="SHORT_TEXT">
+            <BoundingOval x="0" y="0" width="90" height="90" outlinePadding="2"/>
+            <DefaultProviderPolicy
+                defaultSystemProvider="EMPTY"
+                defaultSystemProviderType="SHORT_TEXT"/>
+            <Complication type="SHORT_TEXT">
+                <PartDraw x="3" y="3" width="84" height="84">
+                    <Arc centerX="42" centerY="42" width="84" height="84"
+                         startAngle="0" endAngle="360" thickness="7">
+                        <Stroke color="#AAFF6B35" cap="ROUND"/>
+                    </Arc>
+                </PartDraw>
+                <PartText x="5" y="14" width="80" height="34">
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="20" color="#FFffffff" weight="BOLD">
+                            <Template>[COMPLICATION.SHORT_TEXT]</Template>
+                        </Font>
+                    </Text>
+                </PartText>
+                <PartText x="5" y="50" width="80" height="16">
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="11" color="#88FF6B35" weight="BOLD">
+                            <Template>KCAL</Template>
+                        </Font>
+                    </Text>
+                </PartText>
+                <Variant mode="AMBIENT" target="alpha" value="0"/>
+            </Complication>
+            <Complication type="EMPTY"/>
+        </ComplicationSlot>
+
+        <!-- Layer 3: Tap overlay — CaloriesLaunchActivity trampoline -->
+        <Group x="42" y="200" width="90" height="90">
+            <Variant mode="AMBIENT" target="alpha" value="0"/>
+            <Launch target="com.wetpet.watch/com.tamagotchi.pet.CaloriesLaunchActivity"/>
+        </Group>
 
         <!-- ════════════════════════════════════════════ -->
         <!--  BATTERY (bottom center)                   -->

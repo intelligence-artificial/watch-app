@@ -70,6 +70,10 @@ fun WetPetWearApp(
               navController.navigate("stats")
               navController.navigate("steps_chart")
             }
+            "cal_chart" -> {
+              navController.navigate("stats")
+              navController.navigate("cal_chart")
+            }
           }
 
           // Consume the event so it doesn't fire again
@@ -128,6 +132,15 @@ fun WetPetWearApp(
         StepsChartScreen(
           stepsHistoryStore = healthDataManager.stepsHistoryStore,
           currentSteps = healthDataManager.dailySteps,
+          onBack = { navController.popBackStack() }
+        )
+      }
+
+      // ── SCREEN: Calories Chart Detail ──
+      composable("cal_chart") {
+        CaloriesChartScreen(
+          caloriesHistoryStore = healthDataManager.caloriesHistoryStore,
+          currentCalories = healthDataManager.calories,
           onBack = { navController.popBackStack() }
         )
       }
