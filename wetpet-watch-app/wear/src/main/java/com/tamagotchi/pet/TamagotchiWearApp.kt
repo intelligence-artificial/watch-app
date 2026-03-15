@@ -13,27 +13,18 @@ import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 
 /**
- * Root Composable for the WetPet Wear app.
+ * Root Composable for the PixelFace Wear app.
  *
  * SCREEN MAP:
  * ===========
- *   "home"      → HomeScreen      (pet display, main menu)
- *   "customize" → CustomizeScreen (pet appearance options)
- *   "stats"     → StatsScreen     (health data overview)
- *   "hr_chart"  → HrChartScreen   (heart rate chart detail)
- *
- * NAVIGATION RULES:
- * =================
- *   1. startDestination is ALWAYS "home" — it's the root
- *   2. Deep-link targets are pushed on top of "home" via navigate()
- *   3. Swiping back from any screen returns to its parent
- *   4. pendingNavTarget is consumed once, then set to null
- *
- * DEEP-LINK FLOW:
- * ===============
- *   pendingNavTarget="stats"    →  home (root) → stats
- *   pendingNavTarget="hr_chart" →  home (root) → stats → hr_chart
- *   pendingNavTarget=null       →  home (root) — stay put
+ *   "home"        → HomeScreen             (pixel face + health summary)
+ *   "stats"       → StatsScreen            (health data overview)
+ *   "hr_chart"    → HrChartScreen          (heart rate chart)
+ *   "steps_chart" → StepsChartScreen       (steps chart)
+ *   "cal_chart"   → CaloriesChartScreen    (calories chart)
+ *   "record"      → VoiceNoteScreen        (voice recording)
+ *   "recordings"  → RecordingsListScreen   (recordings list)
+ *   "chat"        → ChatScreen             (chat with pixel face)
  */
 @Composable
 fun WetPetWearApp(
@@ -41,27 +32,26 @@ fun WetPetWearApp(
   pendingNavTarget: MutableState<String?>
 ) {
   val context = LocalContext.current
-  val petStateManager = remember { PetStateManager(context) }
-  val petStatusEngine = remember { PetStatusEngine(context) }
   val navController = rememberSwipeDismissableNavController()
+
+  // Services for voice recording
+  val recordingsDir = remember { context.filesDir }
+  val recorderService = remember { AudioRecorderService(context, recordingsDir) }
+  val playerService = remember { AudioPlayerService() }
+  val dataLayerSender = remember { DataLayerSender(context) }
 
   // React to deep-link navigation requests
   LaunchedEffect(Unit) {
     snapshotFlow { pendingNavTarget.value }
       .collect { target ->
         if (target != null) {
-          Log.d("WetPetNav", "Deep-link navigate to: $target")
+          Log.d("PixelFaceNav", "Deep-link navigate to: $target")
 
-          // Clear backstack to home first (avoid stacking duplicates)
           navController.popBackStack("home", inclusive = false)
 
           when (target) {
-            "home" -> {
-              // Already at home after popBackStack — nothing more to do
-            }
-            "stats" -> {
-              navController.navigate("stats")
-            }
+            "home" -> { /* Already at home */ }
+            "stats" -> navController.navigate("stats")
             "hr_chart" -> {
               navController.navigate("stats")
               navController.navigate("hr_chart")
@@ -74,9 +64,10 @@ fun WetPetWearApp(
               navController.navigate("stats")
               navController.navigate("cal_chart")
             }
+            "record" -> navController.navigate("record")
+            "chat" -> navController.navigate("chat")
           }
 
-          // Consume the event so it doesn't fire again
           pendingNavTarget.value = null
         }
       }
@@ -85,34 +76,23 @@ fun WetPetWearApp(
   MaterialTheme {
     SwipeDismissableNavHost(
       navController = navController,
-      startDestination = "home"  // ALWAYS "home" — never change this
+      startDestination = "home"
     ) {
-      // ── SCREEN: Home (root) ──
+      // ── Home ──
       composable("home") {
         HomeScreen(
-          petStateManager = petStateManager,
           healthDataManager = healthDataManager,
-          petStatusEngine = petStatusEngine,
-          onNavigateToCustomize = { navController.navigate("customize") },
           onNavigateToStats = { navController.navigate("stats") },
-          onNavigateToHrChart = { navController.navigate("hr_chart") }
+          onNavigateToHrChart = { navController.navigate("hr_chart") },
+          onNavigateToRecord = { navController.navigate("record") },
+          onNavigateToChat = { navController.navigate("chat") }
         )
       }
 
-      // ── SCREEN: Customize ──
-      composable("customize") {
-        CustomizeScreen(
-          petStateManager = petStateManager,
-          onBack = { navController.popBackStack() }
-        )
-      }
-
-      // ── SCREEN: Stats & Health ──
+      // ── Stats & Health ──
       composable("stats") {
         StatsScreen(
-          petStateManager = petStateManager,
           healthDataManager = healthDataManager,
-          petStatusEngine = petStatusEngine,
           onBack = { navController.popBackStack() },
           onNavigateToHrChart = { navController.navigate("hr_chart") },
           onNavigateToStepsChart = { navController.navigate("steps_chart") },
@@ -120,7 +100,7 @@ fun WetPetWearApp(
         )
       }
 
-      // ── SCREEN: HR Chart Detail ──
+      // ── HR Chart ──
       composable("hr_chart") {
         HrChartScreen(
           hrHistoryStore = healthDataManager.hrHistoryStore,
@@ -129,7 +109,7 @@ fun WetPetWearApp(
         )
       }
 
-      // ── SCREEN: Steps Chart Detail ──
+      // ── Steps Chart ──
       composable("steps_chart") {
         StepsChartScreen(
           stepsHistoryStore = healthDataManager.stepsHistoryStore,
@@ -138,11 +118,36 @@ fun WetPetWearApp(
         )
       }
 
-      // ── SCREEN: Calories Chart Detail ──
+      // ── Calories Chart ──
       composable("cal_chart") {
         CaloriesChartScreen(
           caloriesHistoryStore = healthDataManager.caloriesHistoryStore,
           currentCalories = healthDataManager.calories,
+          onBack = { navController.popBackStack() }
+        )
+      }
+
+      // ── Voice Recording ──
+      composable("record") {
+        VoiceNoteScreen(
+          recorderService = recorderService,
+          dataLayerSender = dataLayerSender,
+          onNavigateToRecordings = { navController.navigate("recordings") },
+          onBack = { navController.popBackStack() }
+        )
+      }
+
+      // ── Recordings List ──
+      composable("recordings") {
+        RecordingsListScreen(
+          playerService = playerService,
+          onBack = { navController.popBackStack() }
+        )
+      }
+
+      // ── Chat ──
+      composable("chat") {
+        ChatScreen(
           onBack = { navController.popBackStack() }
         )
       }

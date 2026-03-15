@@ -106,9 +106,10 @@ class PassiveDataService : PassiveListenerService() {
 
     // Request complication updates so watchface gets fresh data
     try {
-      NeedsComplicationService.requestUpdate(applicationContext)
-      EmotionComplicationService.requestUpdate(applicationContext)
+      FaceComplicationService.requestUpdate(applicationContext)
       HeartRateComplicationService.requestUpdate(applicationContext)
+      StepsComplicationService.requestUpdate(applicationContext)
+      CaloriesComplicationService.requestUpdate(applicationContext)
     } catch (e: Exception) {
       Log.w(TAG, "Complication update request failed: ${e.message}")
     }

@@ -14,5 +14,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "WetPetWatch"
-include(":watch_face", ":watch_face_v2", ":wear")
+rootProject.name = "PixelFaceWatch"
+include(":wear")
+include(":watch_face")
+include(":mobile")

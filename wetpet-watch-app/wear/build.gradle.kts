@@ -77,9 +77,14 @@ dependencies {
     // WorkManager (for boot re-registration of passive listener)
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 
-    // Complications API (for serving pet sprite to watch face)
+    // Complications API (for serving pixel face to watch face)
     implementation("androidx.wear.watchface:watchface-complications-data-source:1.2.1")
     implementation("androidx.wear.watchface:watchface-complications-data:1.2.1")
+
+    // Watch Face Service (Canvas renderer lives in same APK)
+    implementation("androidx.wear.watchface:watchface:1.2.1")
+    implementation("androidx.wear.watchface:watchface-style:1.2.1")
+    implementation("androidx.wear.watchface:watchface-complications-rendering:1.2.1")
 
     // Debug
     debugImplementation("androidx.compose.ui:ui-tooling:1.5.4")

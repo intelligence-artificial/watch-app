@@ -15,8 +15,8 @@ class HrHistoryStore(private val context: Context) {
   companion object {
     private const val TAG = "HrHistoryStore"
     private const val FILE_NAME = "hr_history.json"
-    private const val MAX_ENTRIES = 288  // ~24 hours at 5-min intervals
-    private const val MIN_INTERVAL_MS = 30_000L // Don't store more than once per 30s
+    private const val MAX_ENTRIES = 8640  // ~30 days at 5-min intervals
+    private const val MIN_INTERVAL_MS = 30_000L
   }
 
   data class HrReading(val bpm: Int, val timestampMs: Long)
@@ -81,6 +81,18 @@ class HrHistoryStore(private val context: Context) {
   fun getRecentHistory(hours: Int = 4): List<HrReading> {
     val cutoff = System.currentTimeMillis() - hours * 3600_000L
     return getHistory().filter { it.timestampMs >= cutoff }
+  }
+
+  /** Get readings for a specific time range (D/W/M/Y) */
+  fun getHistoryForRange(range: TimeRange): List<HrReading> {
+    return getHistory().filter { it.timestampMs >= range.cutoffMs }
+  }
+
+  /** Export to JSON string for phone sync */
+  fun toJson(): String {
+    return try {
+      if (file.exists()) file.readText() else "[]"
+    } catch (_: Exception) { "[]" }
   }
 
   private fun loadArray(): JSONArray {

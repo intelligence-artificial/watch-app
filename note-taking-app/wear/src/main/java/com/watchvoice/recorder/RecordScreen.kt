@@ -309,10 +309,22 @@ fun RecordScreen(
                         }
                         // Enter recorder mode and start recording immediately
                         isInRecorderMode = true
-                        if (recorderService.startRecording() != null) {
-                            isRecording = true
-                            val vib = context.getSystemService(Vibrator::class.java)
-                            vib?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+                        try {
+                            val file = recorderService.startRecording()
+                            if (file != null) {
+                                isRecording = true
+                                val vib = context.getSystemService(Vibrator::class.java)
+                                vib?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+                                Log.d("RecordScreen", "Recording started: ${file.name}")
+                            } else {
+                                Log.e("RecordScreen", "startRecording returned null")
+                                syncStatus = "Record failed"
+                                isInRecorderMode = false
+                            }
+                        } catch (e: Exception) {
+                            Log.e("RecordScreen", "Crash in startRecording: ${e.message}", e)
+                            syncStatus = "Record error"
+                            isInRecorderMode = false
                         }
                     }
             ) {

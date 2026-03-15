@@ -6,12 +6,12 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 
 /**
- * Transparent trampoline for the Pet complication tap.
+ * Transparent trampoline for the Face complication tap.
  *
- * WFF <Launch> can only specify a package name, so both Pet and BPM
+ * WFF <Launch> can only specify a package name, so multiple
  * Launch overlays would send identical intents to MainActivity.
- * This activity is registered as MAIN/LAUNCHER with a separate
- * taskAffinity so WFF can target it via the package name.
+ * This activity is registered with a separate taskAffinity so
+ * WFF can target it via the package name.
  *
  * It immediately forwards to MainActivity with navigate_to=home.
  */

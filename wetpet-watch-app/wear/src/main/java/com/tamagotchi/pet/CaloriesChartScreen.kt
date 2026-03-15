@@ -75,7 +75,8 @@ fun CaloriesChartScreen(
     while (true) { delay(5000); refreshTick++ }
   }
 
-  val history = remember(refreshTick) { caloriesHistoryStore.getRecentHistory(4) }
+  var selectedRange by remember { mutableStateOf(TimeRange.DAY) }
+  val history = remember(refreshTick, selectedRange) { caloriesHistoryStore.getHistoryForRange(selectedRange) }
   val zoneColor = calZoneColor(currentCalories)
   val zoneLabel = calZoneLabel(currentCalories)
 
@@ -141,6 +142,11 @@ fun CaloriesChartScreen(
       }
     }
 
+    // ── Time Range Tabs (D/W/M/Y) ──
+    item {
+      TimeRangeTabs(selected = selectedRange, onSelect = { selectedRange = it }, accentColor = zoneColor)
+    }
+
     // ── Chart ──
     item {
       if (history.size >= 2) {
@@ -192,7 +198,7 @@ fun CaloriesChartScreen(
             .padding(10.dp)
         ) {
           Text(
-            "Last ${history.size} readings",
+            "${selectedRange.label} · ${history.size} readings",
             color = Color.White.copy(alpha = 0.5f),
             fontSize = 10.sp,
             fontFamily = FontFamily.Monospace

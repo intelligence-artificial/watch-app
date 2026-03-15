@@ -112,7 +112,7 @@ class HealthDataManager(private val context: Context) {
       }
       // Force complication binding on app start
       HeartRateComplicationService.requestUpdate(context)
-      PetComplicationService.requestUpdate(context)
+      FaceComplicationService.requestUpdate(context)
       StepsComplicationService.requestUpdate(context)
       CaloriesComplicationService.requestUpdate(context)
     }
@@ -299,14 +299,4 @@ class HealthDataManager(private val context: Context) {
     passiveClient.clearPassiveListenerCallbackAsync()
     Log.d(TAG, "Passive health listener cleared")
   }
-
-  fun snapshot(): HealthDataSnapshot = HealthDataSnapshot(
-    heartRate = heartRate,
-    dailySteps = dailySteps,
-    calories = calories,
-    floorsClimbed = floorsClimbed,
-    distance = distance,
-    activeMinutesZone2Plus = activeMinutesZone2Plus,
-    isSedentary = isSedentary
-  )
 }

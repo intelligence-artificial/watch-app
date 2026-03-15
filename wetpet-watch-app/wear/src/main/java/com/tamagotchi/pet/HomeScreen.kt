@@ -4,7 +4,6 @@ import android.os.BatteryManager
 import android.content.Context
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.scrollBy
@@ -19,13 +18,12 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -36,16 +34,15 @@ import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.math.sin
+import java.util.Calendar
 
 @Composable
 fun HomeScreen(
-  petStateManager: PetStateManager,
   healthDataManager: HealthDataManager,
-  petStatusEngine: PetStatusEngine,
-  onNavigateToCustomize: () -> Unit,
   onNavigateToStats: () -> Unit,
-  onNavigateToHrChart: () -> Unit
+  onNavigateToHrChart: () -> Unit,
+  onNavigateToRecord: () -> Unit = {},
+  onNavigateToChat: () -> Unit = {}
 ) {
   val context = LocalContext.current
   val listState = rememberScalingLazyListState(initialCenterItemIndex = 0)
@@ -54,95 +51,81 @@ fun HomeScreen(
 
   LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
-  // Track previous emotion to detect changes
-  var prevEmotion by remember { mutableStateOf(petStatusEngine.currentEmotion) }
+  // ── TV Animation controller ──
+  val tvState = rememberTvAnimation(autoTurnOn = true)
 
-  // (Health Connect reader removed to decouple from Fitbit)
+  // Refresh complications every 2s
+  LaunchedEffect(Unit) {
+    while (true) {
+      delay(2000)
+      FaceComplicationService.requestUpdate(context)
+      StepsComplicationService.requestUpdate(context)
+      HeartRateComplicationService.requestUpdate(context)
+    }
+  }
 
-  // Update engine every 15s (reduced frequency to improve scroll smoothness)
+  // Animation frame ticker — 100ms = 10fps for smooth pixel animation
+  var animTimeMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
+  LaunchedEffect(Unit) {
+    while (true) {
+      delay(100L)
+      animTimeMs = System.currentTimeMillis()
+    }
+  }
+
+  // Animator with persistent state
+  val animator = remember { PixelPetAnimator() }
+
+  // Health data refresh every 15s
   var tick by remember { mutableIntStateOf(0) }
   LaunchedEffect(Unit) {
     while (true) {
       delay(15000)
-      petStatusEngine.update(healthDataManager.snapshot())
-      val newEmotion = petStatusEngine.currentEmotion
-      petStateManager.saveEmotion(newEmotion)
+      val prefs = context.getSharedPreferences("wetpet_state", Context.MODE_PRIVATE)
+      prefs.edit()
+        .putInt("heart_rate", healthDataManager.heartRate)
+        .putInt("daily_steps", healthDataManager.dailySteps)
+        .putInt("calories", healthDataManager.calories)
+        .apply()
       tick++
-
-      // Trigger complication updates when emotion changes or every 30s
-      if (newEmotion != prevEmotion || tick % 15 == 0) {
-        prevEmotion = newEmotion
-        petStateManager.saveNeedsForComplications(petStatusEngine.currentNeeds)
-        petStateManager.requestComplicationUpdates()
-        scope.launch {
-          petStateManager.syncToPhone(
-            newEmotion,
-            petStatusEngine.currentNeeds,
-            healthDataManager
-          )
-        }
-      }
     }
   }
 
-  val petName = remember(tick) { petStateManager.petName }
-  val theme = remember(tick) { petStateManager.colorTheme }
-  val emotion = remember(tick) { petStatusEngine.currentEmotion }
-  val needs = remember(tick) { petStatusEngine.currentNeeds }
   val steps = remember(tick) { healthDataManager.dailySteps }
   val hr = remember(tick) { healthDataManager.heartRate }
   val calories = remember(tick) { healthDataManager.calories }
 
-  val mood = remember(tick) { petStateManager.emotionToMood(emotion) }
-  val petType = remember(tick) { petStateManager.petType }
-  val spriteRes = remember(theme, mood, petType, tick) {
-    getSpriteResource(context, petType, theme, mood, tick)
+  val expression = remember(tick) {
+    FaceExpression.fromHealth(hr, steps, calories)
   }
 
-  val themeColor = when (theme) {
-    PetColorTheme.GREEN -> Color(0xFF78FFA0)
-    PetColorTheme.BLUE -> Color(0xFF64C8FF)
-    PetColorTheme.PINK -> Color(0xFFFF8CC8)
-    PetColorTheme.YELLOW -> Color(0xFFFFE664)
+  // Trigger TV glitch on expression change
+  var prevExpression by remember { mutableStateOf(expression) }
+  LaunchedEffect(expression) {
+    if (expression != prevExpression && tvState.isFullyOn) {
+      tvState.glitch()
+      prevExpression = expression
+    }
   }
 
-  val emotionColor = Color(
-    ((emotion.arcColor shr 16) and 0xFF).toInt(),
-    ((emotion.arcColor shr 8) and 0xFF).toInt(),
-    (emotion.arcColor and 0xFF).toInt()
+  val faceColor = Color(
+    ((expression.color shr 16) and 0xFF).toInt(),
+    ((expression.color shr 8) and 0xFF).toInt(),
+    (expression.color and 0xFF).toInt()
   )
 
-  // ── Bouncing animation ──
-  val infiniteTransition = rememberInfiniteTransition(label = "pet_bounce")
-  val bounceOffset by infiniteTransition.animateFloat(
-    initialValue = 0f,
-    targetValue = 1f,
-    animationSpec = infiniteRepeatable(
-      animation = tween(
-        durationMillis = when (emotion) {
-          PetEmotion.EXCITED, PetEmotion.ECSTATIC -> 400
-          PetEmotion.HAPPY, PetEmotion.ACTIVE -> 600
-          PetEmotion.SLEEPY, PetEmotion.EXHAUSTED -> 2000
-          PetEmotion.SAD, PetEmotion.BORED -> 1500
-          else -> 800
-        },
-        easing = FastOutSlowInEasing
-      ),
-      repeatMode = RepeatMode.Reverse
-    ),
-    label = "bounce"
-  )
-  val bounceAmplitude = when (emotion) {
-    PetEmotion.EXCITED, PetEmotion.ECSTATIC -> 10f
-    PetEmotion.HAPPY, PetEmotion.ACTIVE -> 6f
-    PetEmotion.SLEEPY, PetEmotion.EXHAUSTED -> 1f
-    PetEmotion.SAD, PetEmotion.BORED -> 2f
-    PetEmotion.IDLE, PetEmotion.CONTENT -> 4f
-    else -> 3f
+  // Get current face frame from animator
+  val hour = remember(tick) { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
+  val currentFaceFrame = remember(animTimeMs) {
+    if (tvState.showStatic) {
+      PixelPetRenderer.generateStaticFrame()
+    } else {
+      animator.getCurrentFrame(animTimeMs, expression, hour)
+    }
   }
-  val petYOffset = (bounceOffset * bounceAmplitude * 2 - bounceAmplitude).dp
 
   // Glow pulse animation
+  val infiniteTransition = rememberInfiniteTransition(label = "face_pulse")
   val glowAlpha by infiniteTransition.animateFloat(
     initialValue = 0.08f,
     targetValue = 0.20f,
@@ -153,11 +136,48 @@ fun HomeScreen(
     label = "glow"
   )
 
+  // Subtle bob animation for the CRT monitor
+  val bobOffset by infiniteTransition.animateFloat(
+    initialValue = 0f,
+    targetValue = 1f,
+    animationSpec = infiniteRepeatable(
+      animation = tween(
+        durationMillis = when (expression) {
+          FaceExpression.EXCITED -> 400
+          FaceExpression.ACTIVE -> 600
+          FaceExpression.SLEEPY -> 2000
+          else -> 800
+        },
+        easing = FastOutSlowInEasing
+      ),
+      repeatMode = RepeatMode.Reverse
+    ),
+    label = "bob"
+  )
+  val bobAmplitude = when (expression) {
+    FaceExpression.EXCITED -> 8f
+    FaceExpression.ACTIVE -> 5f
+    FaceExpression.SLEEPY -> 1f
+    else -> 3f
+  }
+  val faceYOffset = (bobOffset * bobAmplitude * 2 - bobAmplitude).dp
+
   // Battery
   val batteryPct = remember(tick) {
     val bm = context.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager
     bm?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: 50
   }
+
+  // CRT scanline flicker
+  val scanlineOffset by infiniteTransition.animateFloat(
+    initialValue = 0f,
+    targetValue = 1f,
+    animationSpec = infiniteRepeatable(
+      animation = tween(3000, easing = LinearEasing),
+      repeatMode = RepeatMode.Restart
+    ),
+    label = "scanline"
+  )
 
   ScalingLazyColumn(
     state = listState,
@@ -174,113 +194,54 @@ fun HomeScreen(
       .focusRequester(focusRequester)
       .focusable()
   ) {
-    // ── Hero: Arc Rings + Pet ──
+    // ── Hero: Arc Rings + CRT Monitor Pixel Face ──
     item(key = "hero") {
       Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier.size(185.dp)
       ) {
-        // Draw scuba-style arc rings with glow
-        ScubaArcRings(
+        // Arc rings
+        ArcRings(
           stepsProgress = (steps / 10000f).coerceIn(0f, 1f),
           batteryPct = batteryPct / 100f,
-          themeColor = themeColor,
-          emotionColor = emotionColor,
+          faceColor = faceColor,
           glowAlpha = glowAlpha
         )
 
-        // Pet sprite (animated)
-        Column(
-          horizontalAlignment = Alignment.CenterHorizontally,
-          modifier = Modifier.offset(y = petYOffset)
-        ) {
-          if (spriteRes != 0) {
-            Image(
-              painter = painterResource(id = spriteRes),
-              contentDescription = "WetPet",
-              modifier = Modifier.size(82.dp)
-            )
-          } else {
-            Text("🐾", fontSize = 44.sp)
-          }
+        // CRT Monitor pixel face (animated with TV on/off + bob)
+        Box(modifier = Modifier.offset(y = faceYOffset)) {
+          PixelPetCanvas(
+            faceFrame = currentFaceFrame,
+            faceColor = faceColor,
+            sizeDp = 100,
+            tvProgress = tvState.progress,
+            scanlineOffset = scanlineOffset,
+            showStatic = tvState.showStatic
+          )
         }
       }
     }
 
-    // ── Pet name + level ──
-    item(key = "header") {
+    // ── Status label ──
+    item(key = "status") {
       Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(vertical = 2.dp)
       ) {
         Text(
-          text = petName,
-          color = themeColor,
-          fontSize = 18.sp,
+          text = expression.label,
+          color = faceColor,
+          fontSize = 16.sp,
           fontWeight = FontWeight.Bold,
           fontFamily = FontFamily.Monospace,
           textAlign = TextAlign.Center
         )
         Text(
-          text = "LV.${needs.level}  ·  ${needs.xpTotal}XP",
-          color = themeColor.copy(alpha = 0.45f),
+          text = expression.statusLine,
+          color = faceColor.copy(alpha = 0.45f),
           fontSize = 10.sp,
           fontFamily = FontFamily.Monospace
         )
-      }
-    }
-
-    // ── Emotion status card ──
-    item(key = "emotion") {
-      Box(
-        modifier = Modifier
-          .fillMaxWidth()
-          .padding(horizontal = 24.dp)
-          .clip(RoundedCornerShape(14.dp))
-          .background(emotionColor.copy(alpha = 0.08f))
-          .padding(vertical = 6.dp, horizontal = 12.dp)
-      ) {
-        Column(
-          horizontalAlignment = Alignment.CenterHorizontally,
-          modifier = Modifier.fillMaxWidth()
-        ) {
-          Text(
-            text = emotion.line1,
-            color = emotionColor,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = FontFamily.Monospace,
-            textAlign = TextAlign.Center
-          )
-          Text(
-            text = emotion.line2,
-            color = emotionColor.copy(alpha = 0.50f),
-            fontSize = 10.sp,
-            fontFamily = FontFamily.Monospace,
-            textAlign = TextAlign.Center
-          )
-        }
-      }
-    }
-
-    // ── Needs bars (glassmorphic card, vertical layout) ──
-    item(key = "needs") {
-      Box(
-        modifier = Modifier
-          .fillMaxWidth()
-          .padding(horizontal = 28.dp, vertical = 4.dp)
-          .clip(RoundedCornerShape(14.dp))
-          .background(Color.White.copy(alpha = 0.04f))
-          .padding(horizontal = 12.dp, vertical = 8.dp)
-      ) {
-        Column(
-          modifier = Modifier.fillMaxWidth(),
-          verticalArrangement = Arrangement.spacedBy(5.dp)
-        ) {
-          CompactNeedRow("HNG", needs.hunger, Color(0xFFFFAA50))
-          CompactNeedRow("HAP", needs.happiness, Color(0xFF50E6FF))
-          CompactNeedRow("NRG", needs.energy, Color(0xFF50FF78))
-        }
       }
     }
 
@@ -305,24 +266,7 @@ fun HomeScreen(
       }
     }
 
-    // ── Navigation ──
-    item(key = "customize_btn") {
-      Chip(
-        onClick = onNavigateToCustomize,
-        label = {
-          Text(
-            "✦ Customize",
-            fontFamily = FontFamily.Monospace,
-            fontSize = 12.sp,
-            color = themeColor
-          )
-        },
-        colors = ChipDefaults.chipColors(backgroundColor = themeColor.copy(alpha = 0.10f)),
-        modifier = Modifier
-          .fillMaxWidth()
-          .padding(horizontal = 20.dp, vertical = 2.dp)
-      )
-    }
+    // ── Navigation chips ──
     item(key = "stats_btn") {
       Chip(
         onClick = onNavigateToStats,
@@ -340,151 +284,262 @@ fun HomeScreen(
           .padding(horizontal = 20.dp, vertical = 2.dp)
       )
     }
+
+    item(key = "record_btn") {
+      Chip(
+        onClick = onNavigateToRecord,
+        label = {
+          Text(
+            "🎙️ Voice Note",
+            fontFamily = FontFamily.Monospace,
+            fontSize = 12.sp,
+            color = Color(0xFF43A047)
+          )
+        },
+        colors = ChipDefaults.chipColors(backgroundColor = Color(0xFF43A047).copy(alpha = 0.10f)),
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(horizontal = 20.dp, vertical = 2.dp)
+      )
+    }
+
+    item(key = "chat_btn") {
+      Chip(
+        onClick = onNavigateToChat,
+        label = {
+          Text(
+            "💬 Chat",
+            fontFamily = FontFamily.Monospace,
+            fontSize = 12.sp,
+            color = Color(0xFF9C27B0)
+          )
+        },
+        colors = ChipDefaults.chipColors(backgroundColor = Color(0xFF9C27B0).copy(alpha = 0.10f)),
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(horizontal = 20.dp, vertical = 2.dp)
+      )
+    }
   }
 }
 
-/**
- * Scuba-style concentric arc rings drawn with Canvas.
- * Includes subtle glow pulse on the emotion ring.
- */
+// ========================
+// CRT Monitor + Face Canvas
+// ========================
+
 @Composable
-private fun ScubaArcRings(
+private fun PixelPetCanvas(
+  faceFrame: Array<IntArray>,
+  faceColor: Color,
+  sizeDp: Int = 100,
+  tvProgress: Float = 1f,
+  scanlineOffset: Float = 0f,
+  showStatic: Boolean = false
+) {
+  val monitorDark = Color(0xFF1E1E28)
+  val monitorMid = Color(0xFF3C3C50)
+  val monitorLight = Color(0xFF646482)
+  val monitorStand = Color(0xFF323241)
+
+  val screenBg = Color(
+    red = (faceColor.red * 0.08f),
+    green = (faceColor.green * 0.08f),
+    blue = (faceColor.blue * 0.08f),
+    alpha = 1f
+  )
+
+  val paletteMap = mapOf(
+    1 to monitorDark,
+    2 to monitorMid,
+    3 to monitorLight,
+    4 to screenBg,
+    5 to monitorStand
+  )
+
+  // Color for static noise
+  val staticColor = if (showStatic) {
+    faceColor.copy(alpha = 0.6f)
+  } else {
+    faceColor
+  }
+
+  Canvas(modifier = Modifier.size(sizeDp.dp)) {
+    val pixelSize = size.width / PixelPetRenderer.GRID
+
+    // ── 1. Draw monitor frame (16×16 grid) ──
+    PixelPetRenderer.MONITOR_FRAME.forEachIndexed { row, cols ->
+      cols.forEachIndexed { col, paletteIdx ->
+        if (paletteIdx == 0) return@forEachIndexed
+        val color = paletteMap[paletteIdx] ?: return@forEachIndexed
+        drawRect(
+          color = color,
+          topLeft = Offset(col * pixelSize, row * pixelSize),
+          size = Size(pixelSize, pixelSize)
+        )
+      }
+    }
+
+    // ── 2. TV Power Effect — clip face visibility ──
+    if (tvProgress < 1f && tvProgress > 0f) {
+      // Draw power-on/off line effect
+      val screenStartY = PixelPetRenderer.SCREEN_ROW_START * pixelSize
+      val screenHeight = 9 * pixelSize  // rows 3-11
+      val screenCenterY = screenStartY + screenHeight / 2f
+
+      val visibleHeight = screenHeight * tvProgress
+      val lineY = screenCenterY - visibleHeight / 2f
+
+      // Draw bright line
+      drawRect(
+        color = faceColor.copy(alpha = 0.8f),
+        topLeft = Offset(PixelPetRenderer.SCREEN_COL_START * pixelSize - pixelSize, lineY),
+        size = Size(10 * pixelSize, visibleHeight.coerceAtLeast(pixelSize * 0.3f))
+      )
+    }
+
+    // ── 3. Draw face on screen area (only when TV is mostly on) ──
+    if (tvProgress > 0.5f) {
+      val faceAlpha = ((tvProgress - 0.5f) * 2f).coerceIn(0f, 1f)
+      val facePixelW = pixelSize
+      val facePixelH = pixelSize
+
+      val screenOffsetX = PixelPetRenderer.SCREEN_COL_START * pixelSize
+      val screenOffsetY = PixelPetRenderer.SCREEN_ROW_START * pixelSize
+
+      faceFrame.forEachIndexed { row, cols ->
+        cols.forEachIndexed { col, px ->
+          if (px == 0) return@forEachIndexed
+          drawRect(
+            color = staticColor.copy(alpha = faceAlpha),
+            topLeft = Offset(
+              screenOffsetX + col * facePixelW,
+              screenOffsetY + row * facePixelH
+            ),
+            size = Size(facePixelW, facePixelH)
+          )
+        }
+      }
+    }
+
+    // ── 4. CRT Scanlines overlay ──
+    if (tvProgress > 0.3f) {
+      val screenStartX = 3 * pixelSize
+      val screenStartY = PixelPetRenderer.SCREEN_ROW_START * pixelSize
+      val screenWidth = 10 * pixelSize
+      val screenHeight = 9 * pixelSize
+      val scanlineSpacing = pixelSize * 0.5f
+
+      // Moving scanline bar (bright horizontal line that scrolls down)
+      val barY = screenStartY + (scanlineOffset * screenHeight)
+      val barHeight = pixelSize * 0.3f
+      if (barY in screenStartY..(screenStartY + screenHeight)) {
+        drawRect(
+          color = faceColor.copy(alpha = 0.06f),
+          topLeft = Offset(screenStartX, barY),
+          size = Size(screenWidth, barHeight)
+        )
+      }
+
+      // Static scanlines (alternate dim rows)
+      var y = screenStartY
+      while (y < screenStartY + screenHeight) {
+        drawRect(
+          color = Color.Black.copy(alpha = 0.12f),
+          topLeft = Offset(screenStartX, y),
+          size = Size(screenWidth, scanlineSpacing * 0.4f)
+        )
+        y += scanlineSpacing
+      }
+    }
+
+    // ── 5. Screen glow (phosphor halo around screen edges) ──
+    if (tvProgress > 0.5f) {
+      val screenStartX = 3 * pixelSize
+      val screenStartY = PixelPetRenderer.SCREEN_ROW_START * pixelSize
+      val screenWidth = 10 * pixelSize
+      val screenHeight = 9 * pixelSize
+      val glowSize = pixelSize * 0.5f
+
+      // Top glow
+      drawRect(
+        color = faceColor.copy(alpha = 0.04f * tvProgress),
+        topLeft = Offset(screenStartX, screenStartY - glowSize),
+        size = Size(screenWidth, glowSize)
+      )
+      // Bottom glow
+      drawRect(
+        color = faceColor.copy(alpha = 0.04f * tvProgress),
+        topLeft = Offset(screenStartX, screenStartY + screenHeight),
+        size = Size(screenWidth, glowSize)
+      )
+    }
+  }
+}
+
+// ========================
+// Arc Rings
+// ========================
+
+@Composable
+private fun ArcRings(
   stepsProgress: Float,
   batteryPct: Float,
-  themeColor: Color,
-  emotionColor: Color,
+  faceColor: Color,
   glowAlpha: Float
 ) {
   Canvas(modifier = Modifier.fillMaxSize()) {
-    val cx = size.width / 2
-    val cy = size.height / 2
-
-    // ── Outer ring: Steps (270° sweep) ──
     val outerSize = size.width - 8f
     val outerRect = Size(outerSize, outerSize)
     val outerOffset = Offset((size.width - outerSize) / 2, (size.height - outerSize) / 2)
 
-    // Background track
     drawArc(
       color = Color(0x1250E6FF),
-      startAngle = -225f,
-      sweepAngle = 270f,
-      useCenter = false,
-      topLeft = outerOffset,
-      size = outerRect,
+      startAngle = -225f, sweepAngle = 270f,
+      useCenter = false, topLeft = outerOffset, size = outerRect,
       style = Stroke(width = 7f, cap = StrokeCap.Round)
     )
-    // Fill
     drawArc(
       color = Color(0xFF50E6FF),
-      startAngle = -225f,
-      sweepAngle = 270f * stepsProgress,
-      useCenter = false,
-      topLeft = outerOffset,
-      size = outerRect,
+      startAngle = -225f, sweepAngle = 270f * stepsProgress,
+      useCenter = false, topLeft = outerOffset, size = outerRect,
       style = Stroke(width = 7f, cap = StrokeCap.Round)
     )
 
-    // Tick marks at 25%, 50%, 75%
     for (pct in listOf(0.25f, 0.5f, 0.75f)) {
-      val angle = -225f + 270f * pct
       drawArc(
         color = Color(0x25FFFFFF),
-        startAngle = angle - 1f,
-        sweepAngle = 2f,
-        useCenter = false,
-        topLeft = outerOffset,
-        size = outerRect,
+        startAngle = -225f + 270f * pct - 1f, sweepAngle = 2f,
+        useCenter = false, topLeft = outerOffset, size = outerRect,
         style = Stroke(width = 11f)
       )
     }
 
-    // ── Inner ring: Battery (top 90°) ──
     val innerSize = outerSize - 22f
     val innerRect = Size(innerSize, innerSize)
     val innerOffset = Offset((size.width - innerSize) / 2, (size.height - innerSize) / 2)
 
-    // Background track
     drawArc(
       color = Color(0x0E50FF78),
-      startAngle = -135f,
-      sweepAngle = 90f,
-      useCenter = false,
-      topLeft = innerOffset,
-      size = innerRect,
+      startAngle = -135f, sweepAngle = 90f,
+      useCenter = false, topLeft = innerOffset, size = innerRect,
       style = Stroke(width = 4f, cap = StrokeCap.Round)
     )
-    // Fill
     val batColor = if (batteryPct < 0.3f) Color(0xFFFF4646) else Color(0xFF50FF78)
     drawArc(
       color = batColor,
-      startAngle = -135f,
-      sweepAngle = 90f * batteryPct,
-      useCenter = false,
-      topLeft = innerOffset,
-      size = innerRect,
+      startAngle = -135f, sweepAngle = 90f * batteryPct,
+      useCenter = false, topLeft = innerOffset, size = innerRect,
       style = Stroke(width = 4f, cap = StrokeCap.Round)
     )
 
-    // ── Emotion glow ring (pulsing) ──
     val glowSize = innerSize - 18f
     val glowRect = Size(glowSize, glowSize)
     val glowOffset = Offset((size.width - glowSize) / 2, (size.height - glowSize) / 2)
-
     drawArc(
-      color = emotionColor.copy(alpha = glowAlpha),
-      startAngle = 0f,
-      sweepAngle = 360f,
-      useCenter = false,
-      topLeft = glowOffset,
-      size = glowRect,
+      color = faceColor.copy(alpha = glowAlpha),
+      startAngle = 0f, sweepAngle = 360f,
+      useCenter = false, topLeft = glowOffset, size = glowRect,
       style = Stroke(width = 2.5f)
-    )
-  }
-}
-
-@Composable
-private fun CompactNeedRow(label: String, value: Float, color: Color) {
-  val barColor = when {
-    value > 0.7f -> Color(0xFF50FF78)
-    value > 0.3f -> Color(0xFFFFE650)
-    else -> Color(0xFFFF4646)
-  }
-  Row(
-    verticalAlignment = Alignment.CenterVertically,
-    modifier = Modifier.fillMaxWidth()
-  ) {
-    Text(
-      text = label,
-      color = color.copy(alpha = 0.60f),
-      fontSize = 9.sp,
-      fontFamily = FontFamily.Monospace,
-      fontWeight = FontWeight.Bold,
-      modifier = Modifier.width(32.dp)
-    )
-    Box(
-      modifier = Modifier
-        .weight(1f)
-        .height(5.dp)
-        .clip(RoundedCornerShape(3.dp))
-        .background(Color.White.copy(alpha = 0.06f))
-    ) {
-      Box(
-        modifier = Modifier
-          .fillMaxWidth(value.coerceIn(0f, 1f))
-          .fillMaxHeight()
-          .clip(RoundedCornerShape(3.dp))
-          .background(barColor)
-      )
-    }
-    Spacer(Modifier.width(6.dp))
-    Text(
-      text = "${(value * 100).toInt()}%",
-      color = barColor.copy(alpha = 0.8f),
-      fontSize = 9.sp,
-      fontFamily = FontFamily.Monospace,
-      fontWeight = FontWeight.Bold,
-      modifier = Modifier.width(30.dp)
     )
   }
 }
@@ -507,29 +562,4 @@ private fun StatChip(icon: String, value: String, color: Color) {
       fontFamily = FontFamily.Monospace
     )
   }
-}
-
-/**
- * Resolve sprite drawable resource ID based on pet type, theme, mood, and frame.
- */
-private fun getSpriteResource(
-  context: android.content.Context,
-  petType: PetType,
-  theme: PetColorTheme,
-  mood: PetMood,
-  tick: Int
-): Int {
-  val prefix = when (petType) {
-    PetType.BLOB -> "pet"
-    PetType.CAT -> "cat"
-    PetType.DOG -> "dog"
-  }
-  val suffix = "_${theme.name.lowercase()}"
-  val frame = if (tick % 2 == 0) "1" else "2"
-  val name = when (mood) {
-    PetMood.HAPPY, PetMood.CONTENT, PetMood.CELEBRATING -> "${prefix}_idle_$frame$suffix"
-    PetMood.TIRED, PetMood.HUNGRY -> "${prefix}_sleep$suffix"
-    PetMood.SLEEPING -> "${prefix}_sleep$suffix"
-  }
-  return context.resources.getIdentifier(name, "drawable", context.packageName)
 }

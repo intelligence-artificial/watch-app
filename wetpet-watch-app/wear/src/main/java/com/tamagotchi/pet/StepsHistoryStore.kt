@@ -15,7 +15,7 @@ class StepsHistoryStore(private val context: Context) {
   companion object {
     private const val TAG = "StepsHistStore"
     private const val FILE_NAME = "steps_history.json"
-    private const val MAX_ENTRIES = 288  // ~24 hours at 5-min intervals
+    private const val MAX_ENTRIES = 8640  // ~30 days at 5-min intervals
     private const val MIN_INTERVAL_MS = 60_000L  // Don't store more than once per 60s
   }
 
@@ -81,6 +81,16 @@ class StepsHistoryStore(private val context: Context) {
   fun getRecentHistory(hours: Int = 4): List<StepsReading> {
     val cutoff = System.currentTimeMillis() - hours * 3600_000L
     return getHistory().filter { it.timestampMs >= cutoff }
+  }
+
+  fun getHistoryForRange(range: TimeRange): List<StepsReading> {
+    return getHistory().filter { it.timestampMs >= range.cutoffMs }
+  }
+
+  fun toJson(): String {
+    return try {
+      if (file.exists()) file.readText() else "[]"
+    } catch (_: Exception) { "[]" }
   }
 
   private fun loadArray(): JSONArray {

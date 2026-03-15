@@ -2,6 +2,7 @@ package com.tamagotchi.pet
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.MutatePriority
@@ -67,13 +68,13 @@ fun HrChartScreen(
 
   var refreshTick by remember { mutableIntStateOf(0) }
   LaunchedEffect(Unit) {
-    while (true) {
-      delay(5000)
-      refreshTick++
-    }
+    while (true) { delay(5000); refreshTick++ }
   }
 
-  val history = remember(refreshTick) { hrHistoryStore.getRecentHistory(4) }
+  var selectedRange by remember { mutableStateOf(TimeRange.DAY) }
+  val history = remember(refreshTick, selectedRange) {
+    hrHistoryStore.getHistoryForRange(selectedRange)
+  }
   val zoneColor = bpmZoneColor(currentBpm)
   val zoneLabel = bpmZoneLabel(currentBpm)
 
@@ -93,51 +94,27 @@ fun HrChartScreen(
       .focusRequester(focusRequester)
       .focusable()
   ) {
-    // ── Header: current BPM ──
+    // ── Header ──
     item {
       Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-          text = "♥ Heart Rate",
-          color = zoneColor,
-          fontSize = 14.sp,
-          fontWeight = FontWeight.Bold,
-          fontFamily = FontFamily.Monospace,
-          textAlign = TextAlign.Center
-        )
+        Text("♥ Heart Rate", color = zoneColor, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
         Spacer(Modifier.height(4.dp))
         Row(verticalAlignment = Alignment.Bottom) {
-          Text(
-            text = if (currentBpm > 0) "$currentBpm" else "--",
-            color = zoneColor,
-            fontSize = 36.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = FontFamily.Monospace
-          )
+          Text(if (currentBpm > 0) "$currentBpm" else "--", color = zoneColor, fontSize = 36.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
           Spacer(Modifier.width(4.dp))
-          Text(
-            text = "bpm",
-            color = zoneColor.copy(alpha = 0.6f),
-            fontSize = 12.sp,
-            fontFamily = FontFamily.Monospace,
-            modifier = Modifier.padding(bottom = 6.dp)
-          )
+          Text("bpm", color = zoneColor.copy(alpha = 0.6f), fontSize = 12.sp, fontFamily = FontFamily.Monospace, modifier = Modifier.padding(bottom = 6.dp))
         }
-        // Zone badge
         Box(
-          modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(zoneColor.copy(alpha = 0.12f))
-            .padding(horizontal = 12.dp, vertical = 2.dp)
+          modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(zoneColor.copy(alpha = 0.12f)).padding(horizontal = 12.dp, vertical = 2.dp)
         ) {
-          Text(
-            text = zoneLabel,
-            color = zoneColor,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = FontFamily.Monospace
-          )
+          Text(zoneLabel, color = zoneColor, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
         }
       }
+    }
+
+    // ── Time Range Tabs (D/W/M/Y) ──
+    item {
+      TimeRangeTabs(selected = selectedRange, onSelect = { selectedRange = it }, accentColor = zoneColor)
     }
 
     // ── Chart ──
@@ -155,21 +132,11 @@ fun HrChartScreen(
         )
       } else {
         Box(
-          modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-            .height(60.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color.White.copy(alpha = 0.03f)),
+          modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp).height(60.dp)
+            .clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = 0.03f)),
           contentAlignment = Alignment.Center
         ) {
-          Text(
-            text = "Collecting data...\n${history.size} readings",
-            color = Color.White.copy(alpha = 0.3f),
-            fontSize = 11.sp,
-            fontFamily = FontFamily.Monospace,
-            textAlign = TextAlign.Center
-          )
+          Text("Collecting data...\n${history.size} readings", color = Color.White.copy(alpha = 0.3f), fontSize = 11.sp, fontFamily = FontFamily.Monospace, textAlign = TextAlign.Center)
         }
       }
     }
@@ -178,47 +145,24 @@ fun HrChartScreen(
     item {
       if (history.isNotEmpty()) {
         val bpmValues = history.map { it.bpm }
-        val minBpm = bpmValues.min()
-        val maxBpm = bpmValues.max()
-        val avgBpm = bpmValues.average().toInt()
-
         Column(
-          modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color.White.copy(alpha = 0.04f))
-            .padding(10.dp)
+          modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = 0.04f)).padding(10.dp)
         ) {
-          Text(
-            "Last ${history.size} readings",
-            color = Color.White.copy(alpha = 0.5f),
-            fontSize = 10.sp,
-            fontFamily = FontFamily.Monospace
-          )
+          Text("${selectedRange.label} · ${history.size} readings", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp, fontFamily = FontFamily.Monospace)
           Spacer(Modifier.height(4.dp))
-          Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-          ) {
-            StatBadge("MIN", minBpm, bpmZoneColor(minBpm))
-            StatBadge("AVG", avgBpm, bpmZoneColor(avgBpm))
-            StatBadge("MAX", maxBpm, bpmZoneColor(maxBpm))
+          Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            StatBadge("MIN", bpmValues.min(), bpmZoneColor(bpmValues.min()))
+            StatBadge("AVG", bpmValues.average().toInt(), bpmZoneColor(bpmValues.average().toInt()))
+            StatBadge("MAX", bpmValues.max(), bpmZoneColor(bpmValues.max()))
           }
-
-          // Time range
           if (history.size >= 2) {
-            val fmt = SimpleDateFormat("h:mm a", Locale.getDefault())
-            val first = fmt.format(Date(history.first().timestampMs))
-            val last = fmt.format(Date(history.last().timestampMs))
+            val fmt = SimpleDateFormat("MMM dd HH:mm", Locale.getDefault())
             Spacer(Modifier.height(4.dp))
             Text(
-              text = "$first — $last",
-              color = Color.White.copy(alpha = 0.3f),
-              fontSize = 9.sp,
-              fontFamily = FontFamily.Monospace,
-              textAlign = TextAlign.Center,
-              modifier = Modifier.fillMaxWidth()
+              "${fmt.format(Date(history.first().timestampMs))} — ${fmt.format(Date(history.last().timestampMs))}",
+              color = Color.White.copy(alpha = 0.3f), fontSize = 9.sp, fontFamily = FontFamily.Monospace,
+              textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
             )
           }
         }
@@ -227,22 +171,52 @@ fun HrChartScreen(
   }
 }
 
+// ========================
+// Shared Time Range Tab Selector
+// ========================
+
+@Composable
+fun TimeRangeTabs(
+  selected: TimeRange,
+  onSelect: (TimeRange) -> Unit,
+  accentColor: Color
+) {
+  Row(
+    horizontalArrangement = Arrangement.SpaceEvenly,
+    modifier = Modifier
+      .fillMaxWidth()
+      .padding(horizontal = 16.dp, vertical = 4.dp)
+  ) {
+    TimeRange.entries.forEach { range ->
+      val isSelected = range == selected
+      Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+          .clip(RoundedCornerShape(8.dp))
+          .background(
+            if (isSelected) accentColor.copy(alpha = 0.18f)
+            else Color.White.copy(alpha = 0.04f)
+          )
+          .clickable { onSelect(range) }
+          .padding(horizontal = 10.dp, vertical = 4.dp)
+      ) {
+        Text(
+          text = range.shortLabel,
+          color = if (isSelected) accentColor else Color.White.copy(alpha = 0.4f),
+          fontSize = 12.sp,
+          fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+          fontFamily = FontFamily.Monospace
+        )
+      }
+    }
+  }
+}
+
 @Composable
 private fun StatBadge(label: String, value: Int, color: Color) {
   Column(horizontalAlignment = Alignment.CenterHorizontally) {
-    Text(
-      text = label,
-      color = Color.White.copy(alpha = 0.4f),
-      fontSize = 8.sp,
-      fontFamily = FontFamily.Monospace
-    )
-    Text(
-      text = "$value",
-      color = color,
-      fontSize = 16.sp,
-      fontWeight = FontWeight.Bold,
-      fontFamily = FontFamily.Monospace
-    )
+    Text(label, color = Color.White.copy(alpha = 0.4f), fontSize = 8.sp, fontFamily = FontFamily.Monospace)
+    Text("$value", color = color, fontSize = 16.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
   }
 }
 
@@ -253,80 +227,35 @@ private fun HrSparklineChart(
 ) {
   Canvas(modifier = modifier) {
     if (readings.size < 2) return@Canvas
-
-    val w = size.width
-    val h = size.height
-
-    // Y axis range
+    val w = size.width; val h = size.height
     val bpmValues = readings.map { it.bpm }
     val yMin = (bpmValues.min() - 5).coerceAtLeast(40).toFloat()
     val yMax = (bpmValues.max() + 5).coerceAtMost(200).toFloat()
     val yRange = (yMax - yMin).coerceAtLeast(10f)
 
-    // Draw zone bands
-    val zones = listOf(
-      40f to 70f to ZONE_BLUE,
-      70f to 90f to ZONE_GREEN,
-      90f to 120f to ZONE_AMBER,
-      120f to 200f to ZONE_RED
-    )
-
+    val zones = listOf(40f to 70f to ZONE_BLUE, 70f to 90f to ZONE_GREEN, 90f to 120f to ZONE_AMBER, 120f to 200f to ZONE_RED)
     for ((range, color) in zones) {
       val (lo, hi) = range
       val bandTop = h - ((hi.coerceIn(yMin, yMax) - yMin) / yRange) * h
       val bandBot = h - ((lo.coerceIn(yMin, yMax) - yMin) / yRange) * h
       if (bandBot > bandTop) {
-        drawRect(
-          color = color.copy(alpha = 0.06f),
-          topLeft = Offset(0f, bandTop),
-          size = androidx.compose.ui.geometry.Size(w, bandBot - bandTop)
-        )
+        drawRect(color.copy(alpha = 0.06f), Offset(0f, bandTop), androidx.compose.ui.geometry.Size(w, bandBot - bandTop))
       }
     }
 
-    // Draw sparkline
     val path = Path()
     val xStep = w / (readings.size - 1).toFloat()
+    for (i in readings.indices) {
+      val x = i * xStep; val y = h - ((readings[i].bpm - yMin) / yRange) * h
+      if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+    }
+    drawPath(path, bpmZoneColor(readings.last().bpm).copy(alpha = 0.8f), style = Stroke(2.5f, cap = StrokeCap.Round))
 
     for (i in readings.indices) {
-      val x = i * xStep
-      val y = h - ((readings[i].bpm - yMin) / yRange) * h
-
-      if (i == 0) {
-        path.moveTo(x, y)
-      } else {
-        path.lineTo(x, y)
-      }
+      val x = i * xStep; val y = h - ((readings[i].bpm - yMin) / yRange) * h
+      drawCircle(bpmZoneColor(readings[i].bpm).copy(alpha = 0.5f), 2.5f, Offset(x, y))
     }
-
-    // Draw the line with gradient color based on last reading's zone
-    val lineColor = bpmZoneColor(readings.last().bpm)
-    drawPath(
-      path = path,
-      color = lineColor.copy(alpha = 0.8f),
-      style = Stroke(width = 2.5f, cap = StrokeCap.Round)
-    )
-
-    // Draw dots at each reading
-    for (i in readings.indices) {
-      val x = i * xStep
-      val y = h - ((readings[i].bpm - yMin) / yRange) * h
-      val dotColor = bpmZoneColor(readings[i].bpm)
-
-      drawCircle(
-        color = dotColor.copy(alpha = 0.5f),
-        radius = 2.5f,
-        center = Offset(x, y)
-      )
-    }
-
-    // Highlight latest reading
-    val lastX = (readings.size - 1) * xStep
-    val lastY = h - ((readings.last().bpm - yMin) / yRange) * h
-    drawCircle(
-      color = lineColor,
-      radius = 4.5f,
-      center = Offset(lastX, lastY)
-    )
+    val lastX = (readings.size - 1) * xStep; val lastY = h - ((readings.last().bpm - yMin) / yRange) * h
+    drawCircle(bpmZoneColor(readings.last().bpm), 4.5f, Offset(lastX, lastY))
   }
 }

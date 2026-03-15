@@ -8,8 +8,11 @@
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
     <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-
-    <!-- Health Connect permissions removed -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 
     <application
         android:allowBackup="true"
@@ -48,20 +51,20 @@
             android:exported="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:taskAffinity=""
-            android:label="WetPet Stats">
+            android:label="PixelFace Stats">
             <intent-filter>
                 <action android:name="com.wetpet.watch.ACTION_STATS" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
-        <!-- Trampoline: Pet complication tap -> opens app to Home screen -->
+        <!-- Trampoline: Face complication tap -> opens app to Home screen -->
         <activity
             android:name=".HomeLaunchActivity"
             android:exported="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:taskAffinity=""
-            android:label="WetPet Home">
+            android:label="PixelFace Home">
             <intent-filter>
                 <action android:name="com.wetpet.watch.ACTION_HOME" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -74,7 +77,7 @@
             android:exported="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:taskAffinity=""
-            android:label="WetPet HR Chart">
+            android:label="PixelFace HR Chart">
             <intent-filter>
                 <action android:name="com.wetpet.watch.ACTION_HR_CHART" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -87,7 +90,7 @@
             android:exported="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:taskAffinity=""
-            android:label="WetPet Calories">
+            android:label="PixelFace Calories">
             <intent-filter>
                 <action android:name="com.wetpet.watch.ACTION_CAL_CHART" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -109,11 +112,11 @@
             </intent-filter>
         </receiver>
 
-        <!-- Complication: serves WetPet sprite to the watch face -->
+        <!-- Complication: serves pixel face to the watch face -->
         <service
-            android:name=".PetComplicationService"
+            android:name=".FaceComplicationService"
             android:exported="true"
-            android:label="WetPet"
+            android:label="PixelFace"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
             <intent-filter>
                 <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
@@ -126,45 +129,11 @@
                 android:value="60" />
         </service>
 
-        <!-- Complication: serves WetPet emotion status text to the watch face -->
-        <service
-            android:name=".EmotionComplicationService"
-            android:exported="true"
-            android:label="WetPet Mood"
-            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
-            <intent-filter>
-                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
-            </intent-filter>
-            <meta-data
-                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
-                android:value="SHORT_TEXT" />
-            <meta-data
-                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
-                android:value="30" />
-        </service>
-
-        <!-- Complication: serves WetPet needs (hunger/happiness/energy) to the watch face -->
-        <service
-            android:name=".NeedsComplicationService"
-            android:exported="true"
-            android:label="WetPet Needs"
-            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
-            <intent-filter>
-                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
-            </intent-filter>
-            <meta-data
-                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
-                android:value="SHORT_TEXT,RANGED_VALUE" />
-            <meta-data
-                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
-                android:value="30" />
-        </service>
-
         <!-- Complication: serves steps to the watch face -->
         <service
             android:name=".StepsComplicationService"
             android:exported="true"
-            android:label="WetPet Steps"
+            android:label="Steps"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
             <intent-filter>
                 <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
@@ -181,7 +150,7 @@
         <service
             android:name=".HeartRateComplicationService"
             android:exported="true"
-            android:label="WetPet HR"
+            android:label="Heart Rate"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
             <intent-filter>
                 <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
@@ -198,7 +167,7 @@
         <service
             android:name=".CaloriesComplicationService"
             android:exported="true"
-            android:label="WetPet Calories"
+            android:label="Calories"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
             <intent-filter>
                 <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
@@ -211,12 +180,31 @@
                 android:value="30" />
         </service>
 
-        <!-- ContentProvider: exposes pet config to the watchface APK -->
-        <provider
-            android:name=".PetConfigProvider"
-            android:authorities="com.tamagotchi.pet.config"
+        <!-- PixelFace Watch Face Service (same APK = shared prefs) -->
+        <service
+            android:name=".PixelFaceWatchFaceService"
             android:exported="true"
-            android:grantUriPermissions="true" />
+            android:label="PixelFace"
+            android:permission="android.permission.BIND_WALLPAPER">
+
+            <intent-filter>
+                <action android:name="android.service.wallpaper.WallpaperService" />
+                <category android:name="com.google.android.wearable.watchface.category.WATCH_FACE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.service.wallpaper"
+                android:resource="@xml/watch_face" />
+
+            <meta-data
+                android:name="com.google.android.wearable.watchface.preview"
+                android:resource="@drawable/preview" />
+
+            <meta-data
+                android:name="com.google.android.wearable.watchface.preview_circular"
+                android:resource="@drawable/preview" />
+
+        </service>
 
     </application>
 </manifest>

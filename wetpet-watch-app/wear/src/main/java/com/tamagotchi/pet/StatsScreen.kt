@@ -1,7 +1,5 @@
 package com.tamagotchi.pet
 
-import android.Manifest
-import android.content.pm.PackageManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -17,42 +15,44 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.*
+import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 @Composable
 fun StatsScreen(
-  petStateManager: PetStateManager,
   healthDataManager: HealthDataManager,
-  petStatusEngine: PetStatusEngine,
   onBack: () -> Unit,
   onNavigateToHrChart: () -> Unit = {},
   onNavigateToStepsChart: () -> Unit = {},
   onNavigateToCalChart: () -> Unit = {},
 ) {
-  val listState = rememberScalingLazyListState(initialCenterItemIndex = 0)
   val context = LocalContext.current
+  val listState = rememberScalingLazyListState(initialCenterItemIndex = 0)
   val numFmt = remember { NumberFormat.getNumberInstance(Locale.getDefault()) }
   val coroutineScope = rememberCoroutineScope()
   val focusRequester = remember { FocusRequester() }
+  val syncService = remember { HealthDataSyncService(context) }
+  var syncStatus by remember { mutableStateOf<String?>(null) }
 
   LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
-  // Refresh every 15s to reduce recomposition jank
+  // Auto-clear sync status
+  LaunchedEffect(syncStatus) {
+    if (syncStatus != null && syncStatus != "Syncing…") { delay(3000); syncStatus = null }
+  }
+
+  // Refresh every 15s
   var refreshTick by remember { mutableIntStateOf(0) }
   LaunchedEffect(Unit) {
     while (true) {
@@ -61,18 +61,19 @@ fun StatsScreen(
     }
   }
 
-  val needs = remember(refreshTick) { petStatusEngine.currentNeeds }
-  val emotion = remember(refreshTick) { petStatusEngine.currentEmotion }
   val hr = remember(refreshTick) { healthDataManager.heartRate }
   val steps = remember(refreshTick) { healthDataManager.dailySteps }
   val calories = remember(refreshTick) { healthDataManager.calories }
   val floors = remember(refreshTick) { healthDataManager.floorsClimbed }
   val sedentary = remember(refreshTick) { healthDataManager.isSedentary }
 
-  val emotionColor = Color(
-    ((emotion.arcColor shr 16) and 0xFF).toInt(),
-    ((emotion.arcColor shr 8) and 0xFF).toInt(),
-    (emotion.arcColor and 0xFF).toInt()
+  val expression = remember(refreshTick) {
+    FaceExpression.fromHealth(hr, steps, calories)
+  }
+  val expressionColor = Color(
+    ((expression.color shr 16) and 0xFF).toInt(),
+    ((expression.color shr 8) and 0xFF).toInt(),
+    (expression.color and 0xFF).toInt()
   )
 
   // HR zone color
@@ -113,12 +114,12 @@ fun StatsScreen(
         Box(
           modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(emotionColor.copy(alpha = 0.10f))
+            .background(expressionColor.copy(alpha = 0.10f))
             .padding(horizontal = 14.dp, vertical = 3.dp)
         ) {
           Text(
-            text = emotion.line1,
-            color = emotionColor,
+            text = expression.label,
+            color = expressionColor,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = FontFamily.Monospace
@@ -159,9 +160,7 @@ fun StatsScreen(
             )
           }
           Spacer(Modifier.height(6.dp))
-          Row(
-            verticalAlignment = Alignment.Bottom
-          ) {
+          Row(verticalAlignment = Alignment.Bottom) {
             Text(
               text = if (hr > 0) "$hr" else "--",
               color = Color.White,
@@ -344,66 +343,34 @@ fun StatsScreen(
       }
     }
 
-    // ── Pet needs card ──
+    // ── Sync to Phone ──
     item {
-      Column(
+      Chip(
+        onClick = {
+          syncStatus = "Syncing…"
+          coroutineScope.launch {
+            val success = syncService.syncToPhone()
+            syncStatus = if (success) "Synced ✓" else "Sync failed"
+          }
+        },
+        label = {
+          Text(
+            text = syncStatus ?: "📲 Sync to Phone",
+            fontFamily = FontFamily.Monospace,
+            fontSize = 12.sp,
+            color = when {
+              syncStatus?.contains("✓") == true -> Color(0xFF50FF78)
+              syncStatus == "Syncing…" -> Color(0xFF42A5F5)
+              syncStatus?.contains("failed") == true -> Color(0xFFFF4646)
+              else -> Color(0xFF42A5F5)
+            }
+          )
+        },
+        colors = ChipDefaults.chipColors(backgroundColor = Color(0xFF42A5F5).copy(alpha = 0.10f)),
         modifier = Modifier
           .fillMaxWidth()
           .padding(horizontal = 16.dp, vertical = 4.dp)
-          .clip(RoundedCornerShape(14.dp))
-          .background(Color.White.copy(alpha = 0.04f))
-          .padding(12.dp)
-      ) {
-        Text(
-          "Pet Status",
-          color = Color(0xFF78FFA0),
-          fontSize = 13.sp,
-          fontWeight = FontWeight.Bold,
-          fontFamily = FontFamily.Monospace
-        )
-        Spacer(Modifier.height(8.dp))
-        NeedRow("Hunger", needs.hunger)
-        NeedRow("Happiness", needs.happiness)
-        NeedRow("Energy", needs.energy)
-        NeedRow("Health", needs.health)
-        NeedRow("Stress", needs.stress)
-        Spacer(Modifier.height(8.dp))
-        Row(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-          Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-              "LV",
-              color = Color(0xFFFFE664).copy(alpha = 0.5f),
-              fontSize = 9.sp,
-              fontFamily = FontFamily.Monospace
-            )
-            Text(
-              "${needs.level}",
-              color = Color(0xFFFFE664),
-              fontSize = 18.sp,
-              fontWeight = FontWeight.Bold,
-              fontFamily = FontFamily.Monospace
-            )
-          }
-          Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-              "XP",
-              color = Color(0xFFFFE664).copy(alpha = 0.5f),
-              fontSize = 9.sp,
-              fontFamily = FontFamily.Monospace
-            )
-            Text(
-              "${needs.xpTotal}",
-              color = Color(0xFFFFE664),
-              fontSize = 18.sp,
-              fontWeight = FontWeight.Bold,
-              fontFamily = FontFamily.Monospace
-            )
-          }
-        }
-      }
+      )
     }
   }
 }
@@ -449,52 +416,6 @@ private fun StatRow(
           modifier = Modifier.padding(bottom = 1.dp)
         )
       }
-    }
-  }
-}
-
-@Composable
-private fun NeedRow(label: String, value: Float) {
-  val barColor = when {
-    value > 0.7f -> Color(0xFF50FF78)
-    value > 0.3f -> Color(0xFFFFE650)
-    else -> Color(0xFFFF4646)
-  }
-
-  Column(modifier = Modifier.padding(vertical = 2.dp)) {
-    Row(
-      horizontalArrangement = Arrangement.SpaceBetween,
-      modifier = Modifier.fillMaxWidth()
-    ) {
-      Text(
-        text = label,
-        color = Color.White.copy(alpha = 0.6f),
-        fontSize = 11.sp,
-        fontFamily = FontFamily.Monospace
-      )
-      Text(
-        text = "${(value * 100).toInt()}%",
-        color = barColor,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.Bold,
-        fontFamily = FontFamily.Monospace
-      )
-    }
-    Spacer(Modifier.height(1.dp))
-    Box(
-      modifier = Modifier
-        .fillMaxWidth()
-        .height(5.dp)
-        .clip(RoundedCornerShape(3.dp))
-        .background(Color.White.copy(alpha = 0.08f))
-    ) {
-      Box(
-        modifier = Modifier
-          .fillMaxWidth(value.coerceIn(0f, 1f))
-          .fillMaxHeight()
-          .clip(RoundedCornerShape(3.dp))
-          .background(barColor)
-      )
     }
   }
 }

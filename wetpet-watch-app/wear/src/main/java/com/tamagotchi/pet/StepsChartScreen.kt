@@ -78,7 +78,8 @@ fun StepsChartScreen(
     }
   }
 
-  val history = remember(refreshTick) { stepsHistoryStore.getRecentHistory(4) }
+  var selectedRange by remember { mutableStateOf(TimeRange.DAY) }
+  val history = remember(refreshTick, selectedRange) { stepsHistoryStore.getHistoryForRange(selectedRange) }
   val zoneColor = stepsZoneColor(currentSteps)
   val zoneLabel = stepsZoneLabel(currentSteps)
 
@@ -145,6 +146,11 @@ fun StepsChartScreen(
       }
     }
 
+    // ── Time Range Tabs (D/W/M/Y) ──
+    item {
+      TimeRangeTabs(selected = selectedRange, onSelect = { selectedRange = it }, accentColor = zoneColor)
+    }
+
     // ── Chart ──
     item {
       if (history.size >= 2) {
@@ -196,7 +202,7 @@ fun StepsChartScreen(
             .padding(10.dp)
         ) {
           Text(
-            "Last ${history.size} readings",
+            "${selectedRange.label} · ${history.size} readings",
             color = Color.White.copy(alpha = 0.5f),
             fontSize = 10.sp,
             fontFamily = FontFamily.Monospace

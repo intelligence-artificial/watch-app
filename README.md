@@ -82,3 +82,144 @@ whisper recordings/*.m4a --model base
 ```
 
 Future versions may include on-watch transcription using Android's SpeechRecognizer API.
+
+---
+
+## Voice Recorder — Debugging
+
+### Connect Watch (WiFi)
+
+```bash
+adb connect 10.0.0.57:37287
+```
+
+### Screenshot
+
+```bash
+adb -s 10.0.0.57:37287 exec-out screencap -p > /tmp/watch_screenshot.png
+```
+
+### Live Logcat (Voice Recorder)
+
+Run this **before** tapping record, then tap and watch the output:
+
+```bash
+adb -s 10.0.0.57:37287 logcat -c && \
+adb -s 10.0.0.57:37287 logcat -v time \
+  'AudioRecorder:*' 'RecordScreen:*' 'DataLayerSender:*' 'AndroidRuntime:*' '*:E'
+```
+
+### Save Logcat to File
+
+```bash
+adb -s 10.0.0.57:37287 logcat -c && \
+adb -s 10.0.0.57:37287 logcat -v time \
+  'AudioRecorder:*' 'RecordScreen:*' 'DataLayerSender:*' 'AndroidRuntime:*' '*:E' \
+  > /tmp/watch_crash.log &
+# Tap record, wait for crash, then:
+kill %1 && cat /tmp/watch_crash.log
+```
+
+### Check Permissions
+
+```bash
+adb -s 10.0.0.57:37287 shell dumpsys package com.watchvoice.recorder | grep -A5 "runtime permissions"
+```
+
+### Grant Permissions Manually
+
+```bash
+adb -s 10.0.0.57:37287 shell pm grant com.watchvoice.recorder android.permission.RECORD_AUDIO
+```
+
+### Build + Install + Debug (All-in-One Script)
+
+```bash
+./debug_recorder.sh --build
+```
+
+### Build & Install Only
+
+```bash
+bash note-taking-app/build.sh && bash note-taking-app/install.sh
+```
+
+---
+
+## WetPet Watch Face — Pet Complication Sync
+
+The watch face displays the pet sprite from the wear app via the **WFF ComplicationSlot** system. Here's how it works and what NOT to break.
+
+### Architecture
+
+```
+┌─────────────────────────────┐      ┌──────────────────────────────┐
+│  watch_face APK             │      │  wear APK (com.wetpet.watch) │
+│  (com.tamagotchi.wetpet.    │      │                              │
+│   watchface)                │      │  PetComplicationService.kt   │
+│                             │      │  ├─ reads SharedPreferences  │
+│  watchface.xml              │      │  │  (pet_type, color, mood)  │
+│  └─ ComplicationSlot        │◄─────│  ├─ builds sprite name       │
+│     primaryDataSource=      │      │  │  e.g. "dog_idle_2_green"  │
+│     "com.wetpet.watch/      │      │  └─ sends SmallImage Icon    │
+│      com.tamagotchi.pet.    │      │                              │
+│      PetComplicationService"│      │  HealthDataManager.kt        │
+│                             │      │  └─ calls requestUpdate()    │
+│  [COMPLICATION.SMALL_IMAGE] │      │     on pet state change      │
+│  renders the received icon  │      │                              │
+└─────────────────────────────┘      └──────────────────────────────┘
+```
+
+### Critical Rules (Don't Break These)
+
+1. **Use `primaryDataSource`, NOT `defaultDataSource`**
+   - `defaultDataSource` is just a hint — the system ignores it
+   - `primaryDataSource` force-locks the slot to our service
+   - Also set `primarySource` inside `DefaultProviderPolicy`
+
+2. **Do NOT add `EMPTY` to `supportedTypes`**
+   - WFF renders ALL matching Complication type layouts simultaneously
+   - If you have both `SMALL_IMAGE` and `EMPTY`, the EMPTY blob renders ON TOP of the dog
+   - Only use `supportedTypes="SMALL_IMAGE"`
+
+3. **Component name must match exactly**
+   - Watch face XML: `com.wetpet.watch/com.tamagotchi.pet.PetComplicationService`
+   - Wear manifest: service `.PetComplicationService` in namespace `com.tamagotchi.pet`, applicationId `com.wetpet.watch`
+   - Don't change namespace or applicationId without updating both
+
+4. **AOD pet sprite must use `alpha="0"` default**
+   - Set `alpha="0"` on the `PartImage` element itself
+   - Use `<Variant mode="AMBIENT" target="alpha" value="60"/>` to show only in AOD
+   - `<Variant mode="INTERACTIVE" target="alpha" value="0"/>` alone can bleed through in the editor
+
+5. **No fallback pet sprites in the watch face XML**
+   - The complication handles everything
+   - Extra static `PartImage` elements with pet sprites will overlap the complication
+
+### How Pet Changes Sync
+
+1. User changes pet in wear app → writes to `wetpet_state.xml` SharedPreferences
+2. `HealthDataManager.start()` calls `PetComplicationService.requestUpdate(context)`
+3. System calls `onComplicationRequest()` on the service
+4. Service reads `pet_type`, `color_theme`, `emotion` from prefs
+5. Builds sprite name (e.g. `dog_idle_2_green`) → sends as `SmallImage` Icon
+6. Watch face renders via `[COMPLICATION.SMALL_IMAGE]`
+
+### After Fresh Install
+
+The complication may not bind immediately:
+1. Open the WetPet wear app once (triggers `requestUpdate()`)
+2. If still not showing, long-press watch face → edit → tap complication → select "WetPet"
+
+### Debugging
+
+```bash
+# Check if complication service is being called
+adb logcat -s "PetCompSvc:D"
+
+# Check pet state in SharedPreferences
+adb shell "run-as com.wetpet.watch cat shared_prefs/wetpet_state.xml"
+
+# Verify service registration
+adb shell pm dump com.wetpet.watch | grep PetComplication
+```
