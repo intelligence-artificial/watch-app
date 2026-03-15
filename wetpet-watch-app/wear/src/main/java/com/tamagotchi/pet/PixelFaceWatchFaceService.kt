@@ -92,6 +92,20 @@ class PixelFaceCanvasRenderer(
   private val arcPaint = Paint().apply {
     style = Paint.Style.STROKE; isAntiAlias = true; strokeCap = Paint.Cap.ROUND
   }
+  
+  // ── Analog Hand Paints ──
+  private val hourHandPaint = Paint().apply {
+    style = Paint.Style.STROKE; isAntiAlias = true; strokeCap = Paint.Cap.ROUND
+    strokeWidth = 16f
+  }
+  private val minuteHandPaint = Paint().apply {
+    style = Paint.Style.STROKE; isAntiAlias = true; strokeCap = Paint.Cap.ROUND
+    strokeWidth = 10f
+  }
+  private val centerDotPaint = Paint().apply {
+    style = Paint.Style.FILL; isAntiAlias = true
+    color = Color.WHITE
+  }
 
   override fun renderHighlightLayer(
     canvas: Canvas, bounds: Rect, zonedDateTime: ZonedDateTime, sharedAssets: SharedAssets
@@ -132,6 +146,12 @@ class PixelFaceCanvasRenderer(
       wasAmbient = true
       tvProgress = 0f
       drawMonitor(canvas, cx, cy - h * 0.06f, w * 0.50f, PixelPetRenderer.FACE_SLEEP, Color.rgb(100, 100, 100), 1f)
+      
+      // Draw analog hands in ambient mode (dimmer)
+      hourHandPaint.color = Color.rgb(150, 150, 150)
+      minuteHandPaint.color = Color.rgb(200, 200, 200)
+      drawAnalogHands(canvas, cx, cy, w, zonedDateTime)
+      
       textPaint.textSize = w * 0.11f
       textPaint.color = Color.WHITE
       val timeStr = String.format("%02d:%02d", if (hour % 12 == 0) 12 else hour % 12, zonedDateTime.minute)
@@ -281,6 +301,12 @@ class PixelFaceCanvasRenderer(
       canvas.drawRect(sX, sY + sH, sX + sW, sY + sH + pxSz * 0.5f, pixelPaint)
     }
 
+    // ── ANALOG HANDS ──
+    // Draw hands over the monitor
+    hourHandPaint.color = Color.argb(200, Color.red(faceColor), Color.green(faceColor), Color.blue(faceColor))
+    minuteHandPaint.color = Color.WHITE
+    drawAnalogHands(canvas, cx, cy, w, zonedDateTime)
+
     // ── EXPRESSION LABEL ──
     val labelY = monitorCenterY + monitorSize / 2f + h * 0.02f
     textPaint.textSize = w * 0.035f
@@ -367,5 +393,37 @@ class PixelFaceCanvasRenderer(
         }
       }
     }
+  }
+  
+  private fun drawAnalogHands(canvas: Canvas, cx: Float, cy: Float, w: Float, zonedDateTime: ZonedDateTime) {
+    val hour = zonedDateTime.hour % 12
+    val minute = zonedDateTime.minute
+    val second = zonedDateTime.second
+    
+    // Calculate angles (in radians)
+    // -90 degrees because 0 starts at 3 o'clock in standard math
+    val minRotation = minute + second / 60f
+    val hourRotation = hour + minRotation / 60f
+    
+    val minAngle = Math.toRadians((minRotation * 6f) - 90.0)
+    val hourAngle = Math.toRadians((hourRotation * 30f) - 90.0)
+    
+    // Hand lengths based on screen width
+    val hourHandLength = w * 0.22f
+    val minHandLength = w * 0.35f
+    
+    // Calculate endpoints
+    val hourX = (cx + Math.cos(hourAngle) * hourHandLength).toFloat()
+    val hourY = (cy + Math.sin(hourAngle) * hourHandLength).toFloat()
+    
+    val minX = (cx + Math.cos(minAngle) * minHandLength).toFloat()
+    val minY = (cy + Math.sin(minAngle) * minHandLength).toFloat()
+    
+    // Draw hands
+    canvas.drawLine(cx, cy, hourX, hourY, hourHandPaint)
+    canvas.drawLine(cx, cy, minX, minY, minuteHandPaint)
+    
+    // Center dot
+    canvas.drawCircle(cx, cy, 6f, centerDotPaint)
   }
 }
