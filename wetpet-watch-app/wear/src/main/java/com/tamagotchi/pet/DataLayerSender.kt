@@ -22,6 +22,7 @@ class DataLayerSender(private val context: Context) {
     const val KEY_AUDIO = "audio_data"
     const val KEY_FILENAME = "filename"
     const val KEY_TIMESTAMP = "timestamp"
+    const val KEY_TRANSCRIPT = "transcript"
     const val KEY_HR_DATA = "hr_data"
     const val KEY_STEPS_DATA = "steps_data"
     const val KEY_CALORIES_DATA = "calories_data"
@@ -31,8 +32,8 @@ class DataLayerSender(private val context: Context) {
     SENDING, SENT, NO_PHONE, ERROR
   }
 
-  /** Send a voice recording to the phone */
-  suspend fun sendRecording(file: File): SendStatus {
+  /** Send a voice recording + transcript to the phone */
+  suspend fun sendRecording(file: File, transcript: String = ""): SendStatus {
     return try {
       val nodes = Wearable.getNodeClient(context).connectedNodes.await()
       if (nodes.isEmpty()) return SendStatus.NO_PHONE
@@ -46,16 +47,46 @@ class DataLayerSender(private val context: Context) {
         dataMap.putAsset(KEY_AUDIO, asset)
         dataMap.putString(KEY_FILENAME, file.name)
         dataMap.putLong(KEY_TIMESTAMP, timestamp)
+        if (transcript.isNotBlank()) {
+          dataMap.putString(KEY_TRANSCRIPT, transcript)
+        }
       }
 
       Wearable.getDataClient(context).putDataItem(
         dataMapRequest.asPutDataRequest().setUrgent()
       ).await()
 
-      Log.d(TAG, "Recording sent: ${file.name}")
+      Log.d(TAG, "Recording sent: ${file.name} (transcript: ${transcript.take(40)}...)")
       SendStatus.SENT
     } catch (e: Exception) {
       Log.e(TAG, "Failed to send recording: ${e.message}", e)
+      SendStatus.ERROR
+    }
+  }
+
+  /** Send transcript only (no audio file) — from Google Speech Activity */
+  suspend fun sendTranscriptOnly(transcript: String): SendStatus {
+    return try {
+      val nodes = Wearable.getNodeClient(context).connectedNodes.await()
+      if (nodes.isEmpty()) return SendStatus.NO_PHONE
+
+      val timestamp = System.currentTimeMillis()
+      val path = "$RECORDING_PATH/$timestamp"
+
+      val dataMapRequest = PutDataMapRequest.create(path).apply {
+        dataMap.putString(KEY_FILENAME, "voice_note_${timestamp}.txt")
+        dataMap.putLong(KEY_TIMESTAMP, timestamp)
+        dataMap.putString(KEY_TRANSCRIPT, transcript)
+      }
+
+      Wearable.getDataClient(context).putDataItem(
+        dataMapRequest.asPutDataRequest().setUrgent()
+      ).await()
+
+      Log.d(TAG, "Transcript sent: ${transcript.take(60)}...")
+      SendStatus.SENT
+    } catch (e: Exception) {
+      Log.e(TAG, "Failed to send transcript: ${e.message}", e)
       SendStatus.ERROR
     }
   }

@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -48,11 +47,9 @@ fun NotesListScreen(
       }
     }
     val filter = IntentFilter(RecordingReceiver.ACTION_NEW_NOTE)
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-      context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-    } else {
-      context.registerReceiver(receiver, filter)
-    }
+    androidx.core.content.ContextCompat.registerReceiver(
+      context, receiver, filter, androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+    )
     onDispose { context.unregisterReceiver(receiver) }
   }
 

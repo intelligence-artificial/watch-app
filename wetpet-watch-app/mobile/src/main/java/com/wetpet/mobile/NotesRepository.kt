@@ -121,6 +121,30 @@ class NotesRepository(private val context: Context) {
     return note
   }
 
+  /** Add a transcript-only note (no audio file — from Google Speech Activity) */
+  fun addTranscriptNote(filename: String, transcript: String): VoiceNote = synchronized(fileLock) {
+    val existing = loadNotes().find { File(it.audioPath).name == filename }
+    if (existing != null) {
+      Log.d(TAG, "Transcript note already exists for $filename, skipping")
+      return existing
+    }
+
+    val note = VoiceNote(
+      id = UUID.randomUUID().toString(),
+      audioPath = filename, // No actual file — just the identifier
+      transcript = transcript,
+      timestamp = System.currentTimeMillis(),
+      durationMs = 0,
+      isTranscribing = false,
+      processingTimeMs = 0
+    )
+    val notes = loadNotes().toMutableList()
+    notes.add(0, note)
+    saveNotes(notes)
+    Log.d(TAG, "Added transcript note: ${note.id}")
+    return note
+  }
+
   fun updateTranscript(noteId: String, transcript: String, processingTimeMs: Long = 0) = synchronized(fileLock) {
     val notes = loadNotes().toMutableList()
     val index = notes.indexOfFirst { it.id == noteId }

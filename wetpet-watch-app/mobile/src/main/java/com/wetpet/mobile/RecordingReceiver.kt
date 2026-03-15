@@ -11,8 +11,10 @@ import java.io.File
 import java.io.FileOutputStream
 
 /**
- * Receives voice recordings from the WetPet watch app via Wear DataLayer.
- * Saves .m4a files and creates a note entry for transcription.
+ * Receives voice notes from the WetPet watch app via Wear DataLayer.
+ * Supports two modes:
+ *   1. Audio + transcript: saves .m4a file + applies transcript
+ *   2. Transcript only: creates note with just the transcribed text (from Google Speech Activity)
  */
 class RecordingReceiver : WearableListenerService() {
 
@@ -47,11 +49,9 @@ class RecordingReceiver : WearableListenerService() {
       val dataMap = dataMapItem.dataMap
 
       val filename = dataMap.getString("filename")
-        ?: "recording_${System.currentTimeMillis()}.m4a"
-      val audioAsset = dataMap.getAsset("audio_data") ?: run {
-        Log.e(TAG, "No audio asset")
-        return
-      }
+        ?: "note_${System.currentTimeMillis()}.txt"
+      val transcript = dataMap.getString("transcript") ?: ""
+      val audioAsset = dataMap.getAsset("audio_data") // May be null for transcript-only
 
       val repo = NotesRepository(applicationContext)
 
@@ -60,30 +60,48 @@ class RecordingReceiver : WearableListenerService() {
         return
       }
 
-      Log.d(TAG, "Processing: $filename")
+      if (audioAsset != null) {
+        // Mode 1: Audio + transcript
+        Log.d(TAG, "Processing audio: $filename")
 
-      val dataClient = Wearable.getDataClient(applicationContext)
-      val assetResult = com.google.android.gms.tasks.Tasks.await(
-        dataClient.getFdForAsset(audioAsset)
-      )
-      val inputStream = assetResult.inputStream ?: run {
-        Log.e(TAG, "Null input stream")
+        val dataClient = Wearable.getDataClient(applicationContext)
+        val assetResult = com.google.android.gms.tasks.Tasks.await(
+          dataClient.getFdForAsset(audioAsset)
+        )
+        val inputStream = assetResult.inputStream ?: run {
+          Log.e(TAG, "Null input stream")
+          return
+        }
+
+        val audioFile = File(repo.recordingsDir, filename)
+        FileOutputStream(audioFile).use { output ->
+          inputStream.copyTo(output, bufferSize = 8192)
+        }
+        inputStream.close()
+
+        Log.d(TAG, "Saved: ${audioFile.name} (${audioFile.length()} bytes)")
+
+        if (transcript.isNotBlank()) {
+          val note = repo.addNote(audioFile)
+          repo.updateTranscript(note.id, transcript, 0)
+          Log.d(TAG, "✓ Audio + transcript: \"${transcript.take(60)}\"")
+        } else {
+          repo.addNote(audioFile)
+          Log.d(TAG, "Audio only, queued for Vosk transcription")
+        }
+      } else if (transcript.isNotBlank()) {
+        // Mode 2: Transcript only (from Google Speech Activity on watch)
+        Log.d(TAG, "Processing transcript-only note")
+
+        // Create a note with just the transcript, no audio file
+        val note = repo.addTranscriptNote(filename, transcript)
+        Log.d(TAG, "✓ Transcript note: \"${transcript.take(60)}\"")
+      } else {
+        Log.w(TAG, "Empty note (no audio, no transcript) — skipping")
         return
       }
 
-      val audioFile = File(repo.recordingsDir, filename)
-      FileOutputStream(audioFile).use { output ->
-        inputStream.copyTo(output, bufferSize = 8192)
-      }
-      inputStream.close()
-
-      Log.d(TAG, "Saved: ${audioFile.name} (${audioFile.length()} bytes)")
-
-      // Add note with isTranscribing=true, transcription will happen in MainActivity
-      repo.addNote(audioFile)
-      sendBroadcast(Intent(ACTION_NEW_NOTE))
-
-      Log.d(TAG, "Note created, transcription will start via MainActivity")
+      sendBroadcast(Intent(ACTION_NEW_NOTE).setPackage(packageName))
     } catch (e: Exception) {
       Log.e(TAG, "Failed: ${e.message}", e)
     }

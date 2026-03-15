@@ -26,13 +26,14 @@ gradle/wrapper/gradle-wrapper.jar
 recordings/
 *.m4a
 *.wav
+*.3gp
 
 # ML Models (too large for git)
-mobile/src/main/assets/model/
+**/src/main/assets/model/
 *.bin
 *.ggml
 
-# whisper.cpp source clone
+# whisper.cpp source clone (legacy)
 mobile/whisper.cpp/
 
 # JNI / native build outputs
@@ -45,8 +46,12 @@ Thumbs.db
 .DS_Store
 desktop.ini
 
-# Logs
+# Logs & temp output
 *.log
+nohup.out
+
+# Screenshots (debug artifacts)
+*.png
 
 # Temp/debug files
 debug_phone.bat

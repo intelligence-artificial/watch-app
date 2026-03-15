@@ -1,137 +1,185 @@
 package com.tamagotchi.pet
 
+import android.annotation.SuppressLint
 import android.content.Context
+import android.media.AudioFormat
+import android.media.AudioRecord
 import android.media.MediaRecorder
-import android.os.Build
 import android.util.Log
 import java.io.File
+import java.io.FileOutputStream
+import java.io.RandomAccessFile
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 /**
- * Records voice notes as M4A files.
- * Uses Wear OS-friendly audio settings (16kHz/64kbps)
- * with automatic AMR_NB fallback if AAC fails.
+ * Records voice notes as WAV files using AudioRecord (low-level API).
+ * Uses AudioSource.VOICE_COMMUNICATION so SpeechRecognizer (VOICE_RECOGNITION)
+ * can run concurrently on the same mic.
+ *
+ * WAV format: 16kHz mono 16-bit PCM
  */
 class AudioRecorderService(private val context: Context, private val outputDir: File) {
 
   companion object {
     private const val TAG = "AudioRecorder"
+    private const val SAMPLE_RATE = 16000
+    private const val CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO
+    private const val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
   }
 
-  private var recorder: MediaRecorder? = null
+  private var audioRecord: AudioRecord? = null
+  private var recordingThread: Thread? = null
   private var currentFile: File? = null
   private var startTime: Long = 0L
+  @Volatile private var isCurrentlyRecording = false
+  @Volatile private var lastAmplitude = 0
 
-  val isRecording: Boolean get() = recorder != null
+  val isRecording: Boolean get() = isCurrentlyRecording
 
-  /** Returns current max amplitude (0–32767). Resets on each call. */
-  fun getAmplitude(): Int = try { recorder?.maxAmplitude ?: 0 } catch (_: Exception) { 0 }
+  /** Returns current max amplitude (0–32767). */
+  fun getAmplitude(): Int = lastAmplitude
 
+  @SuppressLint("MissingPermission")
   fun startRecording(): File? {
-    if (isRecording) {
+    if (isCurrentlyRecording) {
       Log.w(TAG, "startRecording called but already recording")
       return null
     }
 
     val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(Date())
+    // Keep .m4a extension for compatibility with phone app
     val file = File(outputDir, "voice_${timestamp}.m4a")
     currentFile = file
 
-    Log.d(TAG, "Attempting to start recording to: ${file.absolutePath}")
-    Log.d(TAG, "Output dir exists: ${outputDir.exists()}, writable: ${outputDir.canWrite()}")
+    Log.d(TAG, "Starting AudioRecord to: ${file.absolutePath}")
+
+    val bufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT)
+    if (bufferSize == AudioRecord.ERROR || bufferSize == AudioRecord.ERROR_BAD_VALUE) {
+      Log.e(TAG, "Invalid buffer size: $bufferSize")
+      return null
+    }
 
     try {
-      recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        MediaRecorder(context)
-      } else {
-        @Suppress("DEPRECATION")
-        MediaRecorder()
-      }.apply {
-        Log.d(TAG, "Setting audio source: MIC")
-        setAudioSource(MediaRecorder.AudioSource.MIC)
+      // Use VOICE_COMMUNICATION source — allows SpeechRecognizer (VOICE_RECOGNITION)
+      // to run concurrently on the same mic
+      audioRecord = AudioRecord(
+        MediaRecorder.AudioSource.VOICE_COMMUNICATION,
+        SAMPLE_RATE,
+        CHANNEL_CONFIG,
+        AUDIO_FORMAT,
+        bufferSize * 2
+      )
 
-        Log.d(TAG, "Setting output format: MPEG_4")
-        setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-
-        Log.d(TAG, "Setting audio encoder: AAC")
-        setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-
-        // Use Wear OS-friendly settings (lower than phone defaults)
-        Log.d(TAG, "Setting encoding bitrate: 64000")
-        setAudioEncodingBitRate(64000)
-
-        Log.d(TAG, "Setting sampling rate: 16000")
-        setAudioSamplingRate(16000)
-
-        Log.d(TAG, "Setting output file: ${file.absolutePath}")
-        setOutputFile(file.absolutePath)
-
-        Log.d(TAG, "Calling prepare()...")
-        prepare()
-        Log.d(TAG, "prepare() succeeded")
-
-        Log.d(TAG, "Calling start()...")
-        start()
-        Log.d(TAG, "start() succeeded")
+      if (audioRecord?.state != AudioRecord.STATE_INITIALIZED) {
+        Log.e(TAG, "AudioRecord failed to initialize")
+        audioRecord?.release()
+        audioRecord = null
+        return null
       }
+
+      audioRecord?.startRecording()
+      isCurrentlyRecording = true
       startTime = System.currentTimeMillis()
-      Log.d(TAG, "Recording started successfully: ${file.name}")
+
+      // Write in background thread
+      recordingThread = Thread {
+        writeWavFile(file, bufferSize)
+      }.apply {
+        name = "AudioRecordThread"
+        start()
+      }
+
+      Log.d(TAG, "Recording started (AudioRecord/VOICE_COMMUNICATION)")
       return file
     } catch (e: Exception) {
-      Log.e(TAG, "Failed to start recording: ${e.javaClass.simpleName}: ${e.message}", e)
-      try {
-        recorder?.release()
-      } catch (re: Exception) {
-        Log.e(TAG, "Failed to release recorder after error: ${re.message}")
-      }
-      recorder = null
-      currentFile = null
-
-      // Attempt fallback with minimal settings
-      return tryFallbackRecording(file)
+      Log.e(TAG, "Failed to start recording: ${e.message}", e)
+      audioRecord?.release()
+      audioRecord = null
+      isCurrentlyRecording = false
+      return null
     }
   }
 
-  /**
-   * Fallback recording attempt with minimal settings if the primary attempt fails.
-   * Uses 8kHz / AMR_NB which is supported on virtually all Android hardware.
-   */
-  private fun tryFallbackRecording(file: File): File? {
-    Log.w(TAG, "Attempting fallback recording with minimal settings...")
-    val fallbackFile = File(outputDir, file.nameWithoutExtension + "_fallback.3gp")
-    currentFile = fallbackFile
+  private fun writeWavFile(file: File, bufferSize: Int) {
+    try {
+      FileOutputStream(file).use { fos ->
+        // Write placeholder WAV header (will be updated when recording stops)
+        val header = ByteArray(44)
+        fos.write(header)
 
-    return try {
-      recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        MediaRecorder(context)
-      } else {
-        @Suppress("DEPRECATION")
-        MediaRecorder()
-      }.apply {
-        setAudioSource(MediaRecorder.AudioSource.MIC)
-        setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
-        setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
-        setAudioSamplingRate(8000)
-        setOutputFile(fallbackFile.absolutePath)
-        prepare()
-        start()
+        val buffer = ShortArray(bufferSize / 2)
+        var totalDataBytes = 0
+
+        while (isCurrentlyRecording) {
+          val read = audioRecord?.read(buffer, 0, buffer.size) ?: -1
+          if (read > 0) {
+            // Track amplitude for UI visualization
+            var max = 0
+            for (i in 0 until read) {
+              val abs = Math.abs(buffer[i].toInt())
+              if (abs > max) max = abs
+            }
+            lastAmplitude = max
+
+            // Convert shorts to bytes (little-endian)
+            val byteBuffer = ByteBuffer.allocate(read * 2).order(ByteOrder.LITTLE_ENDIAN)
+            for (i in 0 until read) byteBuffer.putShort(buffer[i])
+            val bytes = byteBuffer.array()
+            fos.write(bytes, 0, read * 2)
+            totalDataBytes += read * 2
+          }
+        }
+
+        fos.flush()
+
+        // Update WAV header with correct sizes
+        updateWavHeader(file, totalDataBytes)
       }
-      startTime = System.currentTimeMillis()
-      Log.d(TAG, "Fallback recording started: ${fallbackFile.name}")
-      fallbackFile
     } catch (e: Exception) {
-      Log.e(TAG, "Fallback recording also failed: ${e.message}", e)
-      try { recorder?.release() } catch (_: Exception) {}
-      recorder = null
-      currentFile = null
-      null
+      Log.e(TAG, "Write error: ${e.message}", e)
     }
   }
+
+  private fun updateWavHeader(file: File, dataSize: Int) {
+    try {
+      RandomAccessFile(file, "rw").use { raf ->
+        val totalSize = 36 + dataSize
+        val byteRate = SAMPLE_RATE * 1 * 16 / 8
+        val blockAlign = 1 * 16 / 8
+
+        raf.seek(0)
+        raf.write("RIFF".toByteArray())
+        raf.write(intToLeBytes(totalSize))
+        raf.write("WAVE".toByteArray())
+        raf.write("fmt ".toByteArray())
+        raf.write(intToLeBytes(16))        // subchunk size
+        raf.write(shortToLeBytes(1))       // PCM format
+        raf.write(shortToLeBytes(1))       // mono
+        raf.write(intToLeBytes(SAMPLE_RATE))
+        raf.write(intToLeBytes(byteRate))
+        raf.write(shortToLeBytes(blockAlign))
+        raf.write(shortToLeBytes(16))      // bits per sample
+        raf.write("data".toByteArray())
+        raf.write(intToLeBytes(dataSize))
+      }
+      Log.d(TAG, "WAV header written: ${file.length()} bytes")
+    } catch (e: Exception) {
+      Log.e(TAG, "Failed to update WAV header: ${e.message}", e)
+    }
+  }
+
+  private fun intToLeBytes(value: Int): ByteArray =
+    ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(value).array()
+
+  private fun shortToLeBytes(value: Int): ByteArray =
+    ByteBuffer.allocate(2).order(ByteOrder.LITTLE_ENDIAN).putShort(value.toShort()).array()
 
   fun stopRecording(): RecordingInfo? {
-    if (!isRecording) {
+    if (!isCurrentlyRecording) {
       Log.w(TAG, "stopRecording called but not recording")
       return null
     }
@@ -139,38 +187,39 @@ class AudioRecorderService(private val context: Context, private val outputDir: 
     val duration = System.currentTimeMillis() - startTime
     val file = currentFile
 
+    isCurrentlyRecording = false
+
     try {
-      recorder?.apply {
-        Log.d(TAG, "Calling stop()...")
-        stop()
-        Log.d(TAG, "Calling release()...")
-        release()
-      }
-      Log.d(TAG, "Recording stopped: ${file?.name}, duration: ${duration}ms, size: ${file?.length() ?: 0} bytes")
+      recordingThread?.join(3000)
+      audioRecord?.stop()
+      audioRecord?.release()
+      Log.d(TAG, "Recording stopped: ${file?.name}, duration: ${duration}ms")
     } catch (e: Exception) {
-      Log.e(TAG, "Failed to stop recording: ${e.javaClass.simpleName}: ${e.message}", e)
+      Log.e(TAG, "Stop error: ${e.message}", e)
     } finally {
-      recorder = null
+      audioRecord = null
+      recordingThread = null
+      lastAmplitude = 0
     }
 
-    return if (file != null && file.exists() && file.length() > 0) {
-      Log.d(TAG, "Recording file valid: ${file.name} (${file.length()} bytes)")
-      RecordingInfo(
-        file = file,
-        timestamp = System.currentTimeMillis(),
-        durationMs = duration
-      )
+    return if (file != null && file.exists() && file.length() > 44) {
+      Log.d(TAG, "Recording valid: ${file.name} (${file.length()} bytes)")
+      RecordingInfo(file = file, timestamp = System.currentTimeMillis(), durationMs = duration)
     } else {
-      Log.w(TAG, "Recording file invalid: exists=${file?.exists()}, size=${file?.length()}")
+      Log.w(TAG, "Recording invalid: exists=${file?.exists()}, size=${file?.length()}")
       null
     }
   }
 
   fun release() {
+    isCurrentlyRecording = false
     try {
-      recorder?.apply { stop(); release() }
+      recordingThread?.join(1000)
+      audioRecord?.stop()
+      audioRecord?.release()
     } catch (_: Exception) {}
-    recorder = null
+    audioRecord = null
+    recordingThread = null
   }
 }
 

@@ -20,11 +20,6 @@ android {
         compose = true
     }
 
-    packaging {
-        jniLibs {
-            useLegacyPackaging = true
-        }
-    }
 
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.8"
@@ -74,11 +69,6 @@ dependencies {
     // Wear Data Layer (to receive from watch)
     implementation("com.google.android.gms:play-services-wearable:18.1.0")
 
-    // JSON
-    implementation("org.json:json:20231013")
-
-    // Vosk offline speech recognition
-    implementation("com.alphacephei:vosk-android:0.3.47")
 
     // Debug
     debugImplementation("androidx.compose.ui:ui-tooling:1.5.4")
