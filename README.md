@@ -96,7 +96,7 @@ adb connect 10.0.0.57:37287
 ### Screenshot
 
 ```bash
-adb -s 10.0.0.57:37287 exec-out screencap -p > /tmp/watch_screenshot.png
+adb -s 10.0.0.57:37287 exec-out screencap -p > watch_screenshot.png
 ```
 
 ### Live Logcat (Voice Recorder)

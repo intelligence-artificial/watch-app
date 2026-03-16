@@ -29,7 +29,7 @@ fun ChartTabBar(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 2.dp)
+            .padding(horizontal = 8.dp, vertical = 2.dp)
     ) {
         ChartTabIcon(
             icon = Icons.Filled.Favorite,
@@ -65,12 +65,12 @@ private fun ChartTabIcon(
             .clip(RoundedCornerShape(10.dp))
             .background(if (isActive) activeColor.copy(alpha = 0.15f) else Color.Transparent)
             .clickable(enabled = !isActive, onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 6.dp)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(16.dp),
             tint = if (isActive) activeColor else Color.White.copy(alpha = 0.25f)
         )
     }
