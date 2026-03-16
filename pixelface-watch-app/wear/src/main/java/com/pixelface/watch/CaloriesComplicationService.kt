@@ -30,6 +30,7 @@ class CaloriesComplicationService : ComplicationDataSourceService() {
   /** Opens PixelFace → Calories chart */
   private fun createTapIntent(): PendingIntent {
     val intent = Intent().apply {
+      action = "com.pixelface.watch.NAVIGATE_CALORIES"
       setClassName(packageName, "com.pixelface.watch.MainActivity")
       putExtra("navigate_to", "cal_chart")
       addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)

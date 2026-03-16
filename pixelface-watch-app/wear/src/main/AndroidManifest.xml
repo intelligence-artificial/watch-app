@@ -3,7 +3,6 @@
 
     <uses-feature android:name="android.hardware.type.watch" />
 
-    <!-- Health + fitness permissions -->
     <uses-permission android:name="android.permission.BODY_SENSORS" />
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
     <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
@@ -11,8 +10,6 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 
     <application
         android:allowBackup="true"
@@ -45,31 +42,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Trampoline: WFF Launch -> opens app to Stats screen -->
-        <activity
-            android:name=".StatsLaunchActivity"
-            android:exported="true"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar"
-            android:taskAffinity=""
-            android:label="PixelFace Stats">
-            <intent-filter>
-                <action android:name="com.pixelface.watch.ACTION_STATS" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
 
-        <!-- Trampoline: Face complication tap -> opens app to Home screen -->
-        <activity
-            android:name=".HomeLaunchActivity"
-            android:exported="true"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar"
-            android:taskAffinity=""
-            android:label="PixelFace Home">
-            <intent-filter>
-                <action android:name="com.pixelface.watch.ACTION_HOME" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
 
         <!-- Trampoline: BPM complication tap -> opens app to HR Chart -->
         <activity

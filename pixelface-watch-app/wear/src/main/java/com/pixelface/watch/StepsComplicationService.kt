@@ -31,8 +31,9 @@ class StepsComplicationService : ComplicationDataSourceService() {
   /** PendingIntent that opens PixelFace → Stats screen */
   private fun createTapIntent(): PendingIntent {
     val intent = Intent().apply {
+      action = "com.pixelface.watch.NAVIGATE_STEPS"
       setClassName(packageName, "com.pixelface.watch.MainActivity")
-      putExtra("navigate_to", "stats")
+      putExtra("navigate_to", "steps_chart")
       addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
     }
     return PendingIntent.getActivity(

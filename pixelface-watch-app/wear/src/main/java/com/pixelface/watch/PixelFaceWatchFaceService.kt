@@ -14,6 +14,9 @@ import androidx.wear.watchface.*
 import androidx.wear.watchface.style.CurrentUserStyleRepository
 import androidx.wear.watchface.style.UserStyleSchema
 import java.time.ZonedDateTime
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * PixelFace Watch Face — Canvas-based, lives in the SAME APK as the app.
@@ -69,11 +72,13 @@ class PixelFaceWatchFaceService : WatchFaceService() {
             return
           }
           
-          // Ring tap → launch PixelFace app
-          if (renderer.isRingTapped(x, y)) {
+          // Ring tap → launch PixelFace app chart
+          val tappedRing = renderer.getTappedRing(x, y)
+          if (tappedRing != null) {
             try {
               val intent = applicationContext.packageManager.getLaunchIntentForPackage("com.pixelface.watch")
               if (intent != null) {
+                intent.putExtra("navigate_to", tappedRing)
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 applicationContext.startActivity(intent)
               }
@@ -107,6 +112,47 @@ class PixelFaceCanvasRenderer(
 
   // Use the SAME animator as the app
   private val animator = PixelFaceAnimator()
+
+  // ── Live Steps Sensor (for instant updates while interactive) ──
+  private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as android.hardware.SensorManager
+  private val stepSensor = sensorManager.getDefaultSensor(android.hardware.Sensor.TYPE_STEP_COUNTER)
+  private var liveStepsOffset = -1
+  private var liveStepsToday = -1
+
+  private val stepListener = object : android.hardware.SensorEventListener {
+    override fun onSensorChanged(event: android.hardware.SensorEvent) {
+      if (event.values.isNotEmpty()) {
+        val rawSteps = event.values[0].toInt()
+        val prefs = context.getSharedPreferences(HealthDataManager.PREFS_NAME, Context.MODE_PRIVATE)
+        val dailySteps = prefs.getInt(HealthDataManager.KEY_DAILY_STEPS, 0)
+        
+        if (liveStepsOffset == -1 || dailySteps > liveStepsToday) {
+          // Sync offset with HealthServices daily steps
+          liveStepsOffset = rawSteps - dailySteps
+        }
+        liveStepsToday = rawSteps - liveStepsOffset
+        
+        // Save back so the complication can show it too
+        if (liveStepsToday > dailySteps) {
+          prefs.edit().putInt(HealthDataManager.KEY_DAILY_STEPS, liveStepsToday).apply()
+          StepsComplicationService.requestUpdate(context)
+        }
+      }
+    }
+    override fun onAccuracyChanged(sensor: android.hardware.Sensor, accuracy: Int) {}
+  }
+
+  init {
+    CoroutineScope(Dispatchers.Main).launch {
+      watchState.isVisible.collect { visible: Boolean? ->
+        if (visible == true && stepSensor != null) {
+          sensorManager.registerListener(stepListener, stepSensor, android.hardware.SensorManager.SENSOR_DELAY_UI)
+        } else if (stepSensor != null) {
+          sensorManager.unregisterListener(stepListener)
+        }
+      }
+    }
+  }
 
   // ── TV Power-On State ──
   private var tvProgress = 0f
@@ -158,15 +204,16 @@ class PixelFaceCanvasRenderer(
   ) {}
 
   /** Check if tap coordinates hit any complication ring */
-  fun isRingTapped(x: Float, y: Float): Boolean {
+  fun getTappedRing(x: Float, y: Float): String? {
     val hitMultiplier = 1.5f
     fun hitTest(cx: Float, cy: Float, r: Float): Boolean {
       val dx = x - cx; val dy = y - cy
       return dx * dx + dy * dy <= (r * hitMultiplier) * (r * hitMultiplier)
     }
-    return hitTest(stepsRingCx, stepsRingCy, stepsRingRadius) ||
-           hitTest(bpmRingCx, bpmRingCy, bpmRingRadius) ||
-           hitTest(kcalRingCx, kcalRingCy, kcalRingRadius)
+    if (hitTest(stepsRingCx, stepsRingCy, stepsRingRadius)) return "steps_chart"
+    if (hitTest(bpmRingCx, bpmRingCy, bpmRingRadius)) return "hr_chart"
+    if (hitTest(kcalRingCx, kcalRingCy, kcalRingRadius)) return "cal_chart"
+    return null
   }
 
   /** Check if tap coordinates hit the monitor/face area */

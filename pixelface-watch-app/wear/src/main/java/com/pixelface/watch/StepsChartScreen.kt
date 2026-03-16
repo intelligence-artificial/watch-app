@@ -2,6 +2,8 @@ package com.pixelface.watch
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.MutatePriority
@@ -61,7 +63,9 @@ private fun stepsZoneLabel(steps: Int): String = when {
 fun StepsChartScreen(
   stepsHistoryStore: StepsHistoryStore,
   currentSteps: Int,
-  onBack: () -> Unit
+  onBack: () -> Unit,
+  onNavigateToHr: () -> Unit = {},
+  onNavigateToCal: () -> Unit = {}
 ) {
   val listState = rememberScalingLazyListState(initialCenterItemIndex = 0)
   val numFmt = remember { NumberFormat.getNumberInstance(Locale.getDefault()) }
@@ -84,32 +88,26 @@ fun StepsChartScreen(
   val zoneLabel = stepsZoneLabel(currentSteps)
 
   ScalingLazyColumn(
-    state = listState,
-    horizontalAlignment = Alignment.CenterHorizontally,
-    autoCentering = null,
-    contentPadding = PaddingValues(top = 24.dp, bottom = 48.dp),
     modifier = Modifier
       .fillMaxSize()
-      .background(Color(0xFF020206))
-      .padding(horizontal = 8.dp)
-      .onRotaryScrollEvent { event ->
-        coroutineScope.launch { listState.scroll(MutatePriority.UserInput) { scrollBy(event.verticalScrollPixels) } }
+      .background(Color.Black)
+      .onRotaryScrollEvent {
+        coroutineScope.launch { listState.scrollBy(it.verticalScrollPixels) }
         true
       }
       .focusRequester(focusRequester)
-      .focusable()
+      .focusable(),
+    state = listState,
+    autoCentering = null
   ) {
+    // ── Chart Tab Bar (emoji-only) ──
+    item {
+      ChartTabBar(activeTab = "steps", onNavigateToHr = onNavigateToHr, onNavigateToSteps = {}, onNavigateToCal = onNavigateToCal)
+    }
+
     // ── Header: current steps ──
     item {
       Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-          text = "👟 Steps",
-          color = zoneColor,
-          fontSize = 14.sp,
-          fontWeight = FontWeight.Bold,
-          fontFamily = FontFamily.Monospace,
-          textAlign = TextAlign.Center
-        )
         Spacer(Modifier.height(4.dp))
         Row(verticalAlignment = Alignment.Bottom) {
           Text(

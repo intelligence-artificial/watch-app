@@ -124,6 +124,9 @@ class HealthDataManager(private val context: Context) {
 
     // Schedule periodic re-registration to survive Doze/battery optimization
     schedulePeriodicReregistration()
+
+    // Schedule periodic health data sync to phone (every 4h)
+    schedulePeriodicSync()
   }
 
   /**
@@ -142,6 +145,28 @@ class HealthDataManager(private val context: Context) {
       reregWork
     )
     Log.d(TAG, "Scheduled periodic re-registration (every 2h)")
+  }
+
+  /**
+   * Schedule a WorkManager periodic task that syncs health data to phone
+   * every 4 hours. Battery-optimized: requires network connectivity.
+   */
+  private fun schedulePeriodicSync() {
+    val constraints = androidx.work.Constraints.Builder()
+      .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+      .build()
+
+    val syncWork = PeriodicWorkRequestBuilder<HealthDataSyncWorker>(
+      4, TimeUnit.HOURS,
+      30, TimeUnit.MINUTES
+    ).setConstraints(constraints).build()
+
+    WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+      HealthDataSyncWorker.WORK_NAME,
+      ExistingPeriodicWorkPolicy.KEEP,
+      syncWork
+    )
+    Log.d(TAG, "Scheduled periodic health sync (every 4h)")
   }
 
   private suspend fun checkCapabilitiesAndRegister() {

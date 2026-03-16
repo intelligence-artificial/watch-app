@@ -23,7 +23,7 @@ class MainActivity : ComponentActivity(), DataClient.OnDataChangedListener {
     super.onCreate(savedInstanceState)
     Log.d(TAG, "MainActivity created")
     setContent {
-      VoiceNotesApp()
+      PixelFaceApp()
     }
   }
 

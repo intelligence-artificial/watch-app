@@ -53,11 +53,11 @@ class FaceComplicationService : ComplicationDataSourceService() {
     listener: ComplicationRequestListener
   ) {
     val context: Context = this
-    val prefs = context.getSharedPreferences("pixelface_state", Context.MODE_PRIVATE)
+    val prefs = context.getSharedPreferences(HealthDataManager.PREFS_NAME, Context.MODE_PRIVATE)
 
-    val hr = prefs.getInt("heart_rate", 0)
-    val steps = prefs.getInt("daily_steps", 0)
-    val calories = prefs.getInt("calories", 0)
+    val hr = prefs.getInt(HealthDataManager.KEY_HEART_RATE, 0)
+    val steps = prefs.getInt(HealthDataManager.KEY_DAILY_STEPS, 0)
+    val calories = prefs.getInt(HealthDataManager.KEY_CALORIES, 0)
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
 
     val expression = FaceExpression.fromHealth(hr, steps, calories)
@@ -143,8 +143,9 @@ class FaceComplicationService : ComplicationDataSourceService() {
   /** Opens app to the home screen */
   private fun createTapIntent(): android.app.PendingIntent {
     val intent = android.content.Intent().apply {
+      action = "com.pixelface.watch.NAVIGATE_HR"
       setClassName(packageName, "com.pixelface.watch.MainActivity")
-      putExtra("navigate_to", "home")
+      putExtra("navigate_to", "hr_chart")
       addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
     }
     return android.app.PendingIntent.getActivity(

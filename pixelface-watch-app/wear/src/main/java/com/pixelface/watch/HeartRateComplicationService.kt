@@ -43,6 +43,7 @@ class HeartRateComplicationService : ComplicationDataSourceService() {
   /** Create a PendingIntent that opens PixelFace → Stats screen */
   private fun createTapIntent(): PendingIntent {
     val intent = Intent().apply {
+      action = "com.pixelface.watch.NAVIGATE_HR"
       setClassName(packageName, "com.pixelface.watch.MainActivity")
       putExtra("navigate_to", "hr_chart")
       addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)

@@ -36,9 +36,10 @@ class PassiveDataService : PassiveListenerService() {
         val latest = hrPoints.last().value.toInt()
         if (latest in 30..220) {
           editor.putInt(HealthDataManager.KEY_HEART_RATE, latest)
-          // Append to HR history for chart
           HrHistoryStore(applicationContext).append(latest)
           Log.d(TAG, "BG HR: $latest bpm")
+          HeartRateComplicationService.requestUpdate(applicationContext)
+          FaceComplicationService.requestUpdate(applicationContext)
         }
       }
     } catch (e: Exception) {
@@ -53,9 +54,9 @@ class PassiveDataService : PassiveListenerService() {
       if (stepPoints.isNotEmpty()) {
         val latest = stepPoints.last().value.toInt()
         editor.putInt(HealthDataManager.KEY_DAILY_STEPS, latest)
-        // Append to steps history for chart
         StepsHistoryStore(applicationContext).append(latest)
         Log.d(TAG, "BG Steps: $latest")
+        StepsComplicationService.requestUpdate(applicationContext)
       }
     } catch (e: Exception) {
       Log.w(TAG, "Steps read failed: ${e.message}")
@@ -69,9 +70,9 @@ class PassiveDataService : PassiveListenerService() {
       if (calPoints.isNotEmpty()) {
         val latest = calPoints.last().value.toInt()
         editor.putInt(HealthDataManager.KEY_CALORIES, latest)
-        // Append to calories history for chart
         CaloriesHistoryStore(applicationContext).append(latest)
         Log.d(TAG, "BG Calories: $latest")
+        CaloriesComplicationService.requestUpdate(applicationContext)
       }
     } catch (e: Exception) {
       Log.w(TAG, "Calories read failed: ${e.message}")

@@ -2,8 +2,16 @@ package com.pixelface.watch
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.wear.compose.material.Icon
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.layout.*
@@ -58,7 +66,9 @@ private fun bpmZoneLabel(bpm: Int): String = when {
 fun HrChartScreen(
   hrHistoryStore: HrHistoryStore,
   currentBpm: Int,
-  onBack: () -> Unit
+  onBack: () -> Unit,
+  onNavigateToSteps: () -> Unit = {},
+  onNavigateToCal: () -> Unit = {}
 ) {
   val listState = rememberScalingLazyListState(initialCenterItemIndex = 0)
   val coroutineScope = rememberCoroutineScope()
@@ -94,6 +104,11 @@ fun HrChartScreen(
       .focusRequester(focusRequester)
       .focusable()
   ) {
+    // ── Chart Tab Bar (emoji-only) ──
+    item {
+      ChartTabBar(activeTab = "hr", onNavigateToHr = {}, onNavigateToSteps = onNavigateToSteps, onNavigateToCal = onNavigateToCal)
+    }
+
     // ── Header ──
     item {
       Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -211,6 +226,8 @@ fun TimeRangeTabs(
     }
   }
 }
+
+
 
 @Composable
 private fun StatBadge(label: String, value: Int, color: Color) {

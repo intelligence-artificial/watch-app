@@ -5,7 +5,7 @@
 
     <application
         android:allowBackup="true"
-        android:label="PixelBot Notes"
+        android:label="PixelFace"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.NoActionBar">
 
@@ -33,6 +33,19 @@
                     android:scheme="wear"
                     android:host="*"
                     android:pathPrefix="/voice_recording" />
+            </intent-filter>
+        </service>
+
+        <!-- Receives health data from the watch via DataLayer -->
+        <service
+            android:name=".HealthDataReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
+                <data
+                    android:scheme="wear"
+                    android:host="*"
+                    android:pathPrefix="/health_sync" />
             </intent-filter>
         </service>
 

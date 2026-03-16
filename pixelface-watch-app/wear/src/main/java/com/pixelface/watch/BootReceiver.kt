@@ -44,6 +44,22 @@ class BootReceiver : BroadcastReceiver() {
       reregWork
     )
     Log.d(TAG, "Scheduled periodic re-registration (every 2h)")
+
+    // Schedule periodic health data sync to phone (every 4h, battery-optimized)
+    val constraints = androidx.work.Constraints.Builder()
+      .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+      .build()
+    val syncWork = androidx.work.PeriodicWorkRequestBuilder<HealthDataSyncWorker>(
+      4, java.util.concurrent.TimeUnit.HOURS,
+      30, java.util.concurrent.TimeUnit.MINUTES
+    ).setConstraints(constraints).build()
+
+    WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+      HealthDataSyncWorker.WORK_NAME,
+      androidx.work.ExistingPeriodicWorkPolicy.KEEP,
+      syncWork
+    )
+    Log.d(TAG, "Scheduled periodic health sync (every 4h)")
   }
 }
 
