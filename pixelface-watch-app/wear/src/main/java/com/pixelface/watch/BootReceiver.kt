@@ -31,6 +31,19 @@ class BootReceiver : BroadcastReceiver() {
     WorkManager.getInstance(context).enqueue(
       OneTimeWorkRequestBuilder<PassiveListenerRegistrationWorker>().build()
     )
+
+    // Also schedule periodic re-registration to survive Doze/battery optimization
+    val reregWork = androidx.work.PeriodicWorkRequestBuilder<HealthDataReregistrationWorker>(
+      2, java.util.concurrent.TimeUnit.HOURS,
+      30, java.util.concurrent.TimeUnit.MINUTES
+    ).build()
+
+    WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+      HealthDataReregistrationWorker.WORK_NAME,
+      androidx.work.ExistingPeriodicWorkPolicy.KEEP,
+      reregWork
+    )
+    Log.d(TAG, "Scheduled periodic re-registration (every 2h)")
   }
 }
 

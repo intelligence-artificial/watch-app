@@ -187,11 +187,12 @@ class PixelFaceCanvasRenderer(
 
     canvas.drawRect(0f, 0f, w, h, bgPaint)
 
-    // ── Read health data from SHARED SharedPreferences ──
-    val prefs = context.getSharedPreferences("pixelface_state", Context.MODE_PRIVATE)
-    val hr = prefs.getInt("heart_rate", 0)
-    val steps = prefs.getInt("daily_steps", 0)
-    val calories = prefs.getInt("calories", 0)
+    // ── Read health data directly from HealthDataManager's prefs ──
+    // (Previously read from "pixelface_state" which only updates when HomeScreen is open)
+    val healthPrefs = context.getSharedPreferences(HealthDataManager.PREFS_NAME, Context.MODE_PRIVATE)
+    val hr = healthPrefs.getInt(HealthDataManager.KEY_HEART_RATE, 0)
+    val steps = healthPrefs.getInt(HealthDataManager.KEY_DAILY_STEPS, 0)
+    val calories = healthPrefs.getInt(HealthDataManager.KEY_CALORIES, 0)
     val hour = zonedDateTime.hour
 
     // Use the SAME FaceExpression logic as the app

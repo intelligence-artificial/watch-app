@@ -9,10 +9,14 @@ import androidx.health.services.client.PassiveMonitoringClient
 import androidx.health.services.client.data.DataPointContainer
 import androidx.health.services.client.data.DataType
 import androidx.health.services.client.data.PassiveListenerConfig
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 
 /**
  * Expanded passive health data manager — pulls all available
@@ -101,6 +105,7 @@ class HealthDataManager(private val context: Context) {
   fun start() {
     // First load any previously saved data from SharedPreferences
     loadFromPrefs()
+    Log.d(TAG, "▶ start() — loaded prefs: hr=$heartRate, steps=$dailySteps, cal=$calories, lastUpdate=$lastDataUpdateMs")
 
     scope.launch {
       try {
@@ -116,6 +121,27 @@ class HealthDataManager(private val context: Context) {
       StepsComplicationService.requestUpdate(context)
       CaloriesComplicationService.requestUpdate(context)
     }
+
+    // Schedule periodic re-registration to survive Doze/battery optimization
+    schedulePeriodicReregistration()
+  }
+
+  /**
+   * Schedule a WorkManager periodic task that re-registers the passive listener
+   * every 2 hours. This prevents silent registration loss.
+   */
+  private fun schedulePeriodicReregistration() {
+    val reregWork = PeriodicWorkRequestBuilder<HealthDataReregistrationWorker>(
+      2, TimeUnit.HOURS,
+      30, TimeUnit.MINUTES // flex interval
+    ).build()
+
+    WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+      HealthDataReregistrationWorker.WORK_NAME,
+      ExistingPeriodicWorkPolicy.KEEP,
+      reregWork
+    )
+    Log.d(TAG, "Scheduled periodic re-registration (every 2h)")
   }
 
   private suspend fun checkCapabilitiesAndRegister() {
@@ -201,6 +227,7 @@ class HealthDataManager(private val context: Context) {
    * and called when reading from SharedPreferences.
    */
   fun processDataPoints(dataPoints: DataPointContainer) {
+    Log.d(TAG, "▶ processDataPoints() — received new data batch")
     // Heart rate
     val hrPoints = dataPoints.getData(DataType.HEART_RATE_BPM)
     if (hrPoints.isNotEmpty()) {
@@ -292,7 +319,8 @@ class HealthDataManager(private val context: Context) {
     lastDataUpdateMs = prefs.getLong(KEY_LAST_UPDATE, 0L)
     supportedTypes = prefs.getStringSet(KEY_SUPPORTED_TYPES, emptySet()) ?: emptySet()
     capabilitiesChecked = prefs.getBoolean(KEY_CAPABILITIES_CHECKED, false)
-    Log.d(TAG, "Loaded from prefs: steps=$dailySteps, hr=$heartRate, cal=$calories")
+    val staleSec = if (lastDataUpdateMs > 0) (System.currentTimeMillis() - lastDataUpdateMs) / 1000 else -1
+    Log.d(TAG, "Loaded from prefs: steps=$dailySteps, hr=$heartRate, cal=$calories (stale: ${staleSec}s)")
   }
 
   fun stop() {

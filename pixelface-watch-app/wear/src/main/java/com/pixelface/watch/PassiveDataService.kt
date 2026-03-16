@@ -53,6 +53,8 @@ class PassiveDataService : PassiveListenerService() {
       if (stepPoints.isNotEmpty()) {
         val latest = stepPoints.last().value.toInt()
         editor.putInt(HealthDataManager.KEY_DAILY_STEPS, latest)
+        // Append to steps history for chart
+        StepsHistoryStore(applicationContext).append(latest)
         Log.d(TAG, "BG Steps: $latest")
       }
     } catch (e: Exception) {
@@ -67,6 +69,8 @@ class PassiveDataService : PassiveListenerService() {
       if (calPoints.isNotEmpty()) {
         val latest = calPoints.last().value.toInt()
         editor.putInt(HealthDataManager.KEY_CALORIES, latest)
+        // Append to calories history for chart
+        CaloriesHistoryStore(applicationContext).append(latest)
         Log.d(TAG, "BG Calories: $latest")
       }
     } catch (e: Exception) {
