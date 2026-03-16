@@ -113,30 +113,43 @@ class PixelFaceCanvasRenderer(
   // Use the SAME animator as the app
   private val animator = PixelFaceAnimator()
 
-  // ── Live Steps Sensor (for instant updates while interactive) ──
+  // ── Hybrid Step Counter ──
+  // Health Services STEPS_DAILY = authoritative baseline (same as Fitbit)
+  // Hardware TYPE_STEP_COUNTER = live delta between batches (responsiveness)
   private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as android.hardware.SensorManager
   private val stepSensor = sensorManager.getDefaultSensor(android.hardware.Sensor.TYPE_STEP_COUNTER)
-  private var liveStepsOffset = -1
-  private var liveStepsToday = -1
+  private var sensorBaselineRaw = -1        // raw sensor value when we last synced with Health Services
+  private var healthServicesBaseline = -1   // last STEPS_DAILY value from Health Services
 
   private val stepListener = object : android.hardware.SensorEventListener {
     override fun onSensorChanged(event: android.hardware.SensorEvent) {
-      if (event.values.isNotEmpty()) {
-        val rawSteps = event.values[0].toInt()
-        val prefs = context.getSharedPreferences(HealthDataManager.PREFS_NAME, Context.MODE_PRIVATE)
-        val dailySteps = prefs.getInt(HealthDataManager.KEY_DAILY_STEPS, 0)
-        
-        if (liveStepsOffset == -1 || dailySteps > liveStepsToday) {
-          // Sync offset with HealthServices daily steps
-          liveStepsOffset = rawSteps - dailySteps
-        }
-        liveStepsToday = rawSteps - liveStepsOffset
-        
-        // Save back so the complication can show it too
-        if (liveStepsToday > dailySteps) {
-          prefs.edit().putInt(HealthDataManager.KEY_DAILY_STEPS, liveStepsToday).apply()
-          StepsComplicationService.requestUpdate(context)
-        }
+      if (event.values.isEmpty()) return
+      val rawSteps = event.values[0].toInt()
+      val prefs = context.getSharedPreferences(HealthDataManager.PREFS_NAME, Context.MODE_PRIVATE)
+      val hsSteps = prefs.getInt(HealthDataManager.KEY_DAILY_STEPS, 0)
+
+      // If Health Services delivered a new batch, snap to it as the new baseline
+      if (hsSteps != healthServicesBaseline) {
+        healthServicesBaseline = hsSteps
+        sensorBaselineRaw = rawSteps
+        return // accept the HS value as-is this tick
+      }
+
+      // First reading — just set baseline, don't override
+      if (sensorBaselineRaw == -1) {
+        sensorBaselineRaw = rawSteps
+        healthServicesBaseline = hsSteps
+        return
+      }
+
+      // Calculate delta from hardware sensor since last HS batch
+      val sensorDelta = (rawSteps - sensorBaselineRaw).coerceAtLeast(0)
+      val liveSteps = healthServicesBaseline + sensorDelta
+
+      // Only write if we're adding steps (never decrease)
+      if (liveSteps > hsSteps) {
+        prefs.edit().putInt(HealthDataManager.KEY_DAILY_STEPS, liveSteps).apply()
+        StepsComplicationService.requestUpdate(context)
       }
     }
     override fun onAccuracyChanged(sensor: android.hardware.Sensor, accuracy: Int) {}
@@ -146,7 +159,10 @@ class PixelFaceCanvasRenderer(
     CoroutineScope(Dispatchers.Main).launch {
       watchState.isVisible.collect { visible: Boolean? ->
         if (visible == true && stepSensor != null) {
-          sensorManager.registerListener(stepListener, stepSensor, android.hardware.SensorManager.SENSOR_DELAY_UI)
+          // Reset baselines on screen-on so we re-sync with Health Services
+          sensorBaselineRaw = -1
+          healthServicesBaseline = -1
+          sensorManager.registerListener(stepListener, stepSensor, android.hardware.SensorManager.SENSOR_DELAY_NORMAL)
         } else if (stepSensor != null) {
           sensorManager.unregisterListener(stepListener)
         }
