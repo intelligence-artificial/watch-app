@@ -5,7 +5,7 @@
 
     <application
         android:allowBackup="true"
-        android:label="PixelFace Notes"
+        android:label="PixelBot Notes"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.NoActionBar">
 

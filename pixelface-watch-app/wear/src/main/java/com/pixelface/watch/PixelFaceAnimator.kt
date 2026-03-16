@@ -93,6 +93,25 @@ class PixelFaceAnimator {
         Frame(PixelFaceRenderer.FACE_BLINK,   120L),
         Frame(PixelFaceRenderer.FACE_ALERT,  1000L),
       )
+      FaceExpression.SAD -> listOf(
+        Frame(PixelFaceRenderer.FACE_SAD,     2500L),  // sad face
+        Frame(PixelFaceRenderer.FACE_HUNGRY,  1500L),  // alternate sad
+        Frame(PixelFaceRenderer.FACE_SAD,     2500L),
+        Frame(PixelFaceRenderer.FACE_BLINK,    150L),  // slow blink
+      )
+      FaceExpression.WORRIED -> listOf(
+        Frame(PixelFaceRenderer.FACE_WORRIED, 2000L),  // worried face
+        Frame(PixelFaceRenderer.FACE_BLINK,    120L),
+        Frame(PixelFaceRenderer.FACE_WORRIED, 1500L),
+        Frame(PixelFaceRenderer.FACE_IDLE,     800L),  // brief normal
+        Frame(PixelFaceRenderer.FACE_WORRIED, 2000L),
+      )
+      FaceExpression.TIRED -> listOf(
+        Frame(PixelFaceRenderer.FACE_TIRED,   3000L),  // tired — slow
+        Frame(PixelFaceRenderer.FACE_SLEEP,    800L),  // dozing off
+        Frame(PixelFaceRenderer.FACE_TIRED,   3000L),
+        Frame(PixelFaceRenderer.FACE_BLINK,    200L),  // slow heavy blink
+      )
     }
   }
 }

@@ -179,6 +179,44 @@ object PixelFaceRenderer {
     intArrayOf(T,T,T,T,T,T,T,T),
   )
 
+  // ── UNHAPPY / HEALTH-AWARE FRAMES ──
+
+  /** Worried face — angled eyebrows, small frown */
+  val FACE_WORRIED = arrayOf(
+    intArrayOf(T,1,T,T,T,T,1,T),  // worried eyebrows /  \
+    intArrayOf(T,T,1,T,T,1,T,T),  // eyes
+    intArrayOf(T,T,1,T,T,1,T,T),
+    intArrayOf(T,T,T,T,T,T,T,T),
+    intArrayOf(T,T,T,T,T,T,T,T),
+    intArrayOf(T,T,T,1,1,T,T,T),  // small frown
+    intArrayOf(T,T,1,T,T,1,T,T),
+    intArrayOf(T,T,T,T,T,T,T,T),
+  )
+
+  /** Tired face — droopy half-closed eyes, flat mouth */
+  val FACE_TIRED = arrayOf(
+    intArrayOf(T,T,T,T,T,T,T,T),
+    intArrayOf(T,T,T,T,T,T,T,T),
+    intArrayOf(T,T,1,T,T,1,T,T),  // half-closed droopy eyes
+    intArrayOf(T,1,1,T,T,1,1,T),
+    intArrayOf(T,T,T,T,T,T,T,T),
+    intArrayOf(T,T,T,T,T,T,T,T),
+    intArrayOf(T,T,1,1,1,1,T,T),  // flat tired mouth
+    intArrayOf(T,T,T,T,T,T,T,T),
+  )
+
+  /** Sad face — sad eyes, deep frown */
+  val FACE_SAD = arrayOf(
+    intArrayOf(T,T,T,T,T,T,T,T),
+    intArrayOf(T,T,1,T,T,1,T,T),  // sad eyes
+    intArrayOf(T,T,1,T,T,1,T,T),
+    intArrayOf(T,T,T,T,T,T,T,T),
+    intArrayOf(T,T,T,T,T,T,T,T),
+    intArrayOf(T,T,1,T,T,1,T,T),  // deep frown
+    intArrayOf(T,1,T,T,T,T,1,T),
+    intArrayOf(T,T,T,T,T,T,T,T),
+  )
+
   // ── TV STATIC FRAME ──
   // Shown during TV on/off transitions — random noise pattern
 

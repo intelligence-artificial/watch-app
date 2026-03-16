@@ -97,6 +97,14 @@
             </intent-filter>
         </activity>
 
+        <!-- Voice Note: tap robot face → speech-to-text note -->
+        <activity
+            android:name=".VoiceNoteActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:taskAffinity=""
+            android:label="Voice Note" />
+
         <!-- Background passive health data service -->
         <service
             android:name=".PassiveDataService"

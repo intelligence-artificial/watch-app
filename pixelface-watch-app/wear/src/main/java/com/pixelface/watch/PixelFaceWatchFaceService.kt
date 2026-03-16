@@ -56,6 +56,20 @@ class PixelFaceWatchFaceService : WatchFaceService() {
         if (tapType == TapType.UP) {
           val x = tapEvent.xPos.toFloat()
           val y = tapEvent.yPos.toFloat()
+          
+          // Face tap → launch voice note
+          if (renderer.isMonitorTapped(x, y)) {
+            try {
+              val intent = Intent(applicationContext, VoiceNoteActivity::class.java)
+              intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+              applicationContext.startActivity(intent)
+            } catch (e: Exception) {
+              Log.e(TAG, "Failed to launch voice note", e)
+            }
+            return
+          }
+          
+          // Ring tap → launch PixelFace app
           if (renderer.isRingTapped(x, y)) {
             try {
               val intent = applicationContext.packageManager.getLaunchIntentForPackage("com.pixelface.watch")
@@ -111,6 +125,9 @@ class PixelFaceCanvasRenderer(
   private var bpmRingCx = 0f; private var bpmRingCy = 0f; private var bpmRingRadius = 0f
   private var kcalRingCx = 0f; private var kcalRingCy = 0f; private var kcalRingRadius = 0f
 
+  // ── Monitor tap position (for voice note) ──
+  private var monitorCx = 0f; private var monitorCy = 0f; private var monitorHalfSize = 0f
+
   // ── Paints ──
   private val bgPaint = Paint().apply { color = Color.rgb(2, 2, 6); style = Paint.Style.FILL }
   private val pixelPaint = Paint().apply { style = Paint.Style.FILL; isAntiAlias = false }
@@ -150,6 +167,12 @@ class PixelFaceCanvasRenderer(
     return hitTest(stepsRingCx, stepsRingCy, stepsRingRadius) ||
            hitTest(bpmRingCx, bpmRingCy, bpmRingRadius) ||
            hitTest(kcalRingCx, kcalRingCy, kcalRingRadius)
+  }
+
+  /** Check if tap coordinates hit the monitor/face area */
+  fun isMonitorTapped(x: Float, y: Float): Boolean {
+    return x >= monitorCx - monitorHalfSize && x <= monitorCx + monitorHalfSize &&
+           y >= monitorCy - monitorHalfSize && y <= monitorCy + monitorHalfSize
   }
 
   override fun render(
@@ -277,6 +300,9 @@ class PixelFaceCanvasRenderer(
     // ── CRT MONITOR + FACE — smaller, shifted up ──
     val monitorSize = w * 0.40f
     val monitorCenterY = cy - h * 0.10f + bobOffset
+    monitorCx = cx
+    monitorCy = monitorCenterY
+    monitorHalfSize = monitorSize / 2f
 
     // ── EXPRESSION LABEL — above the monitor (bold) ──
     textPaint.textSize = w * 0.035f
