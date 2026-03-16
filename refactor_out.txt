@@ -1,0 +1,69 @@
++ cd /home/braindead/github/watch-app/wetpet-watch-app
++ sed -i 's/implementation("androidx.wear.watchface:watchface-style:1.2.1")/implementation("androidx.wear.watchface:watchface-style:1.2.1")\n    implementation("androidx.wear.watchface:watchface-editor:1.2.1")/' wear/build.gradle.kts
++ sed -i '/<application/a \
+        <activity\
+            android:name="androidx.wear.watchface.editor.action.WATCH_FACE_EDITOR"\
+            android:exported="true"\
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"\
+            android:taskAffinity=""\
+            android:label="PixelFace Editor">\
+            <intent-filter>\
+                <action android:name="androidx.wear.watchface.editor.action.WATCH_FACE_EDITOR" />\
+                <category android:name="com.google.android.wearable.watchface.category.WEARABLE_CONFIGURATION" />\
+                <category android:name="android.intent.category.DEFAULT" />\
+            </intent-filter>\
+        </activity>' wear/src/main/AndroidManifest.xml
++ awk '
+/android.service.wallpaper.WallpaperService/ {
+    print
+    print "            </intent-filter>"
+    print "            <meta-data android:name=\"androidx.wear.watchface.EDITOR_ACTIVITY\" android:value=\"androidx.wear.watchface.editor.action.WATCH_FACE_EDITOR\" />"
+    getline
+    next
+}
+{print}' wear/src/main/AndroidManifest.xml
++ mv wear/src/main/AndroidManifest2.xml wear/src/main/AndroidManifest.xml
++ mv wear/src/main/java/com/tamagotchi/pet/PixelPetRenderer.kt wear/src/main/java/com/tamagotchi/pet/PixelFaceRenderer.kt
++ mv wear/src/main/java/com/tamagotchi/pet/PixelPetAnimator.kt wear/src/main/java/com/tamagotchi/pet/PixelFaceAnimator.kt
++ mkdir -p wear/src/main/java/com/pixelface/watch
++ mv wear/src/main/java/com/tamagotchi/pet/AudioPlayerService.kt wear/src/main/java/com/tamagotchi/pet/AudioRecorderService.kt wear/src/main/java/com/tamagotchi/pet/BootReceiver.kt wear/src/main/java/com/tamagotchi/pet/CaloriesChartScreen.kt wear/src/main/java/com/tamagotchi/pet/CaloriesComplicationService.kt wear/src/main/java/com/tamagotchi/pet/CaloriesHistoryStore.kt wear/src/main/java/com/tamagotchi/pet/CaloriesLaunchActivity.kt wear/src/main/java/com/tamagotchi/pet/ChatScreen.kt wear/src/main/java/com/tamagotchi/pet/DataLayerPaths.kt wear/src/main/java/com/tamagotchi/pet/DataLayerSender.kt wear/src/main/java/com/tamagotchi/pet/FaceComplicationService.kt wear/src/main/java/com/tamagotchi/pet/FaceExpression.kt wear/src/main/java/com/tamagotchi/pet/HealthDataManager.kt wear/src/main/java/com/tamagotchi/pet/HealthDataSyncService.kt wear/src/main/java/com/tamagotchi/pet/HeartRateComplicationService.kt wear/src/main/java/com/tamagotchi/pet/HomeLaunchActivity.kt wear/src/main/java/com/tamagotchi/pet/HomeScreen.kt wear/src/main/java/com/tamagotchi/pet/HrChartLaunchActivity.kt wear/src/main/java/com/tamagotchi/pet/HrChartScreen.kt wear/src/main/java/com/tamagotchi/pet/HrHistoryStore.kt wear/src/main/java/com/tamagotchi/pet/MainActivity.kt wear/src/main/java/com/tamagotchi/pet/PassiveDataService.kt wear/src/main/java/com/tamagotchi/pet/PixelFaceAnimator.kt wear/src/main/java/com/tamagotchi/pet/PixelFaceRenderer.kt wear/src/main/java/com/tamagotchi/pet/PixelFaceWatchFaceService.kt wear/src/main/java/com/tamagotchi/pet/RecordingsListScreen.kt wear/src/main/java/com/tamagotchi/pet/SpeechRecognizerHelper.kt wear/src/main/java/com/tamagotchi/pet/StatsLaunchActivity.kt wear/src/main/java/com/tamagotchi/pet/StatsScreen.kt wear/src/main/java/com/tamagotchi/pet/StepsChartScreen.kt wear/src/main/java/com/tamagotchi/pet/StepsComplicationService.kt wear/src/main/java/com/tamagotchi/pet/StepsHistoryStore.kt wear/src/main/java/com/tamagotchi/pet/TalkingAnimator.kt wear/src/main/java/com/tamagotchi/pet/TamagotchiWearApp.kt wear/src/main/java/com/tamagotchi/pet/TimeRange.kt wear/src/main/java/com/tamagotchi/pet/TvAnimation.kt wear/src/main/java/com/tamagotchi/pet/VoiceNoteScreen.kt wear/src/main/java/com/pixelface/watch/
++ rmdir wear/src/main/java/com/tamagotchi/pet
++ rmdir wear/src/main/java/com/tamagotchi
++ mkdir -p mobile/src/main/java/com/pixelface/mobile
++ mv mobile/src/main/java/com/wetpet/mobile/MainActivity.kt mobile/src/main/java/com/wetpet/mobile/NoteDetailScreen.kt mobile/src/main/java/com/wetpet/mobile/NotesListScreen.kt mobile/src/main/java/com/wetpet/mobile/NotesRepository.kt mobile/src/main/java/com/wetpet/mobile/RecordingReceiver.kt mobile/src/main/java/com/wetpet/mobile/VoiceNotesApp.kt mobile/src/main/java/com/pixelface/mobile/
++ rmdir mobile/src/main/java/com/wetpet/mobile
++ rmdir mobile/src/main/java/com/wetpet
++ find . -type f -name '*.kt' -o -name '*.xml' -o -name '*.kts' -o -name '*.sh' -o -name '*.md'
++ grep -v '\.gradle'
++ grep -v build/
++ grep -v refactor.sh
++ xargs sed -i s/com.tamagotchi.pet/com.pixelface.watch/g
++ find . -type f -name '*.kt' -o -name '*.xml' -o -name '*.kts' -o -name '*.sh' -o -name '*.md'
++ grep -v '\.gradle'
++ grep -v build/
++ grep -v refactor.sh
++ xargs sed -i s/com.wetpet.watch/com.pixelface.watch/g
++ find . -type f -name '*.kt' -o -name '*.xml' -o -name '*.kts' -o -name '*.sh' -o -name '*.md'
++ grep -v '\.gradle'
++ grep -v build/
++ grep -v refactor.sh
++ xargs sed -i s/com.wetpet.mobile/com.pixelface.mobile/g
++ find . -type f -name '*.kt' -o -name '*.xml' -o -name '*.kts' -o -name '*.sh' -o -name '*.md'
++ grep -v '\.gradle'
++ grep -v build/
++ grep -v refactor.sh
++ xargs sed -i s/PixelPet/PixelFace/g
++ find . -type f -name '*.kt' -o -name '*.xml' -o -name '*.kts' -o -name '*.sh' -o -name '*.md'
++ grep -v '\.gradle'
++ grep -v build/
++ grep -v refactor.sh
++ xargs sed -i s/WetPet/PixelFace/g
++ find . -type f -name '*.kt' -o -name '*.xml' -o -name '*.kts' -o -name '*.sh' -o -name '*.md'
++ grep -v '\.gradle'
++ grep -v build/
++ grep -v refactor.sh
++ xargs sed -i s/wetpet/pixelface/g
++ cd ..
++ mv wetpet-watch-app pixelface-watch-app
++ sed -i s/wetpet/pixelface/g setup_sdk.sh
++ sed -i s/WetPet/PixelFace/g setup_sdk.sh

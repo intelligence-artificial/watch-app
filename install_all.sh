@@ -47,10 +47,10 @@ echo "🧹 Removing old versions..."
 OLD_PACKAGES=("com.watchvoice.recorder" "com.watchvoice.faces" "com.tamagotchi.pet")
 for pkg in "${OLD_PACKAGES[@]}"; do
   if [[ -n "$WATCH_ID" ]]; then
-    adb -s "$WATCH_ID" uninstall "$pkg" 2>/dev/null && echo "   ⌚ Removed $pkg from watch" || true
+    adb -s "$WATCH_ID" uninstall "$pkg" >/dev/null 2>&1 && echo "   ⌚ Removed $pkg from watch" || true
   fi
   if [[ -n "$PHONE_ID" ]]; then
-    adb -s "$PHONE_ID" uninstall "$pkg" 2>/dev/null && echo "   📱 Removed $pkg from phone" || true
+    adb -s "$PHONE_ID" uninstall "$pkg" >/dev/null 2>&1 && echo "   📱 Removed $pkg from phone" || true
   fi
 done
 echo ""

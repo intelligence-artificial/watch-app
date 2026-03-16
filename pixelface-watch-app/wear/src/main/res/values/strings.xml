@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PixelFace</string>
+    <string name="color_theme_name">Color Theme</string>
+    <string name="color_theme_desc">Choose a color theme for the watch</string>
+    <string name="color_grey">Grey (Default)</string>
+    <string name="color_blue">Matrix Blue</string>
+    <string name="color_green">Matrix Green</string>
+    <string name="color_pink">Neon Pink</string>
+</resources>
