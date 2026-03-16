@@ -17,7 +17,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
@@ -127,7 +126,7 @@ class WatchFaceConfigActivity : ComponentActivity() {
           horizontalArrangement = Arrangement.Center,
           verticalAlignment = Alignment.Top
         ) {
-          THEME_OPTIONS.forEachIndexed { index, opt ->
+          THEME_OPTIONS.forEachIndexed { index, _ ->
             val dotColor = if (index == selectedIndex) Color.White else Color(0xFF444444)
             Canvas(modifier = Modifier.size(8.dp).padding(horizontal = 1.dp)) {
               drawCircle(color = dotColor)
@@ -147,19 +146,20 @@ data class ThemeOption(
   val accentColor: Color
 )
 
+// Nature-inspired, muted grey-based color palettes
 val THEME_OPTIONS = listOf(
-  ThemeOption("GREY", "Grey", Color(0xFF505050), Color(0xFFC8C8C8), Color(0xFF787878)),
-  ThemeOption("BLUE", "Matrix Blue", Color(0xFF5050C8), Color(0xFF9696FF), Color(0xFF7070E0)),
-  ThemeOption("GREEN", "Matrix Green", Color(0xFF50C850), Color(0xFF96FF96), Color(0xFF70E070)),
-  ThemeOption("PINK", "Neon Pink", Color(0xFFC850C8), Color(0xFFFF96FF), Color(0xFFE070E0)),
-  ThemeOption("CYAN", "Cyan", Color(0xFF50C8C8), Color(0xFF96FFFF), Color(0xFF70E0E0)),
-  ThemeOption("GOLD", "Gold", Color(0xFFC8A050), Color(0xFFFFDC96), Color(0xFFE0B870)),
-  ThemeOption("RED", "Crimson", Color(0xFFC83030), Color(0xFFFF7070), Color(0xFFE05050)),
-  ThemeOption("ORANGE", "Sunset", Color(0xFFC87030), Color(0xFFFFB070), Color(0xFFE09050)),
-  ThemeOption("VIOLET", "Violet", Color(0xFF8040C8), Color(0xFFB880FF), Color(0xFFA060E0)),
-  ThemeOption("ICE", "Ice", Color(0xFF3080C8), Color(0xFF70B8FF), Color(0xFF5098E0)),
-  ThemeOption("LIME", "Lime", Color(0xFF90C830), Color(0xFFC8FF70), Color(0xFFB0E050)),
-  ThemeOption("ROSE", "Rosé", Color(0xFFC85070), Color(0xFFFF90B0), Color(0xFFE07090)),
+  ThemeOption("GREY", "Slate", Color(0xFF5A5A5A), Color(0xFFB0B0B0), Color(0xFF808080)),
+  ThemeOption("BLUE", "Ocean", Color(0xFF3D5A80), Color(0xFF8AABC4), Color(0xFF5E7D99)),
+  ThemeOption("GREEN", "Forest", Color(0xFF4A6B4A), Color(0xFF8FB88F), Color(0xFF698C69)),
+  ThemeOption("PINK", "Blossom", Color(0xFF8B5E6B), Color(0xFFC49DA8), Color(0xFFA07A86)),
+  ThemeOption("CYAN", "Glacier", Color(0xFF4A7070), Color(0xFF8FB8B8), Color(0xFF699090)),
+  ThemeOption("GOLD", "Sandstone", Color(0xFF8B7A50), Color(0xFFC4B48A), Color(0xFFA09068)),
+  ThemeOption("RED", "Ember", Color(0xFF7A3B3B), Color(0xFFB88080), Color(0xFF995858)),
+  ThemeOption("ORANGE", "Amber", Color(0xFF8B6040), Color(0xFFC49E7A), Color(0xFFA07858)),
+  ThemeOption("VIOLET", "Twilight", Color(0xFF5E4A7A), Color(0xFF9E8AB8), Color(0xFF7A6899)),
+  ThemeOption("ICE", "Frost", Color(0xFF3D5870), Color(0xFF8AA4B8), Color(0xFF587A90)),
+  ThemeOption("LIME", "Moss", Color(0xFF607A3B), Color(0xFFA0B880), Color(0xFF7A9958)),
+  ThemeOption("ROSE", "Terracotta", Color(0xFF8B5050), Color(0xFFC49090), Color(0xFFA06868)),
 )
 
 @Composable
@@ -180,30 +180,8 @@ fun WatchFacePreview(
     val minuteFraction = minute / 60f
     val hourFraction = ((hour % 12) + minuteFraction) / 12f
 
-    // -- Minute arc (outer) --
-    val minInset = w * 0.06f
-    drawArc(
-      color = theme.minuteColor.copy(alpha = 0.15f),
-      startAngle = -90f,
-      sweepAngle = 360f,
-      useCenter = false,
-      topLeft = Offset(minInset, minInset),
-      size = Size(w - minInset * 2, h - minInset * 2),
-      style = Stroke(width = w * 0.03f, cap = StrokeCap.Round)
-    )
-    drawArc(
-      color = theme.minuteColor,
-      startAngle = -90f,
-      sweepAngle = minuteFraction * 360f,
-      useCenter = false,
-      topLeft = Offset(minInset, minInset),
-      size = Size(w - minInset * 2, h - minInset * 2),
-      style = Stroke(width = w * 0.03f, cap = StrokeCap.Round)
-    )
-
-    // -- Hour arc (inner) --
-    val hourInset = w * 0.12f
-    val hourRadius = cx - hourInset
+    // -- Hour arc (outer — thicker) --
+    val hourInset = w * 0.06f
     drawArc(
       color = theme.hourColor.copy(alpha = 0.15f),
       startAngle = -90f,
@@ -223,11 +201,33 @@ fun WatchFacePreview(
       style = Stroke(width = w * 0.04f, cap = StrokeCap.Round)
     )
 
-    // 12 hour dots
+    // -- Minute arc (inner — thinner) --
+    val minInset = w * 0.12f
+    val minRadius = cx - minInset
+    drawArc(
+      color = theme.minuteColor.copy(alpha = 0.15f),
+      startAngle = -90f,
+      sweepAngle = 360f,
+      useCenter = false,
+      topLeft = Offset(minInset, minInset),
+      size = Size(w - minInset * 2, h - minInset * 2),
+      style = Stroke(width = w * 0.03f, cap = StrokeCap.Round)
+    )
+    drawArc(
+      color = theme.minuteColor,
+      startAngle = -90f,
+      sweepAngle = minuteFraction * 360f,
+      useCenter = false,
+      topLeft = Offset(minInset, minInset),
+      size = Size(w - minInset * 2, h - minInset * 2),
+      style = Stroke(width = w * 0.03f, cap = StrokeCap.Round)
+    )
+
+    // 12 hour dots on inner ring
     for (i in 0..11) {
       val angle = Math.PI * 2 * (i / 12.0) - Math.PI / 2
-      val dx = cx + cos(angle).toFloat() * hourRadius
-      val dy = cy + sin(angle).toFloat() * hourRadius
+      val dx = cx + cos(angle).toFloat() * minRadius
+      val dy = cy + sin(angle).toFloat() * minRadius
       val dotRadius = if (i <= (hour % 12)) w * 0.012f else w * 0.006f
       val dotColor = if (i <= (hour % 12)) theme.hourColor else theme.hourColor.copy(alpha = 0.3f)
       drawCircle(color = dotColor, radius = dotRadius, center = Offset(dx, dy))
