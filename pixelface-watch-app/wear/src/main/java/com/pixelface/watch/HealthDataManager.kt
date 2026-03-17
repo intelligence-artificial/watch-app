@@ -91,6 +91,37 @@ class HealthDataManager(private val context: Context) {
   private val prefs: SharedPreferences =
     context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
+  // Listener that keeps in-memory fields in sync when SharedPreferences
+  // are updated externally (e.g., by the watchface's MeasureClient or step sensor)
+  private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { sp, key ->
+    when (key) {
+      KEY_HEART_RATE -> {
+        val newHr = sp.getInt(KEY_HEART_RATE, 0)
+        if (newHr in 30..220 && newHr != heartRate) {
+          heartRate = newHr
+          lastDataUpdateMs = System.currentTimeMillis()
+          Log.d(TAG, "Prefs sync HR: $newHr")
+        }
+      }
+      KEY_DAILY_STEPS -> {
+        val newSteps = sp.getInt(KEY_DAILY_STEPS, 0)
+        if (newSteps != dailySteps) {
+          dailySteps = newSteps
+          lastDataUpdateMs = System.currentTimeMillis()
+        }
+      }
+      KEY_CALORIES -> {
+        val newCal = sp.getInt(KEY_CALORIES, 0)
+        if (newCal != calories) {
+          calories = newCal
+          lastDataUpdateMs = System.currentTimeMillis()
+        }
+      }
+      KEY_FLOORS -> { floorsClimbed = sp.getInt(KEY_FLOORS, 0) }
+      KEY_DISTANCE -> { distance = sp.getFloat(KEY_DISTANCE, 0f) }
+    }
+  }
+
   // Foreground callback — delivers data faster while app is active
   private val callback = object : PassiveListenerCallback {
     override fun onNewDataPointsReceived(dataPoints: DataPointContainer) {
@@ -106,6 +137,10 @@ class HealthDataManager(private val context: Context) {
     // First load any previously saved data from SharedPreferences
     loadFromPrefs()
     Log.d(TAG, "▶ start() — loaded prefs: hr=$heartRate, steps=$dailySteps, cal=$calories, lastUpdate=$lastDataUpdateMs")
+
+    // Register prefs listener so in-memory values stay synced with
+    // watchface writes (MeasureClient HR, step sensor, etc.)
+    prefs.registerOnSharedPreferenceChangeListener(prefsListener)
 
     scope.launch {
       try {
@@ -349,6 +384,7 @@ class HealthDataManager(private val context: Context) {
   }
 
   fun stop() {
+    prefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
     passiveClient.clearPassiveListenerCallbackAsync()
     Log.d(TAG, "Passive health listener cleared")
   }

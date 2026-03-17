@@ -10,6 +10,13 @@ import android.graphics.RectF
 import android.graphics.Typeface
 import android.util.Log
 import android.view.SurfaceHolder
+import androidx.health.services.client.HealthServices
+import androidx.health.services.client.MeasureCallback
+import androidx.health.services.client.MeasureClient
+import androidx.health.services.client.data.Availability
+import androidx.health.services.client.data.DataPointContainer
+import androidx.health.services.client.data.DataType
+import androidx.health.services.client.data.DeltaDataType
 import androidx.wear.watchface.*
 import androidx.wear.watchface.style.CurrentUserStyleRepository
 import androidx.wear.watchface.style.UserStyleSchema
@@ -155,16 +162,67 @@ class PixelFaceCanvasRenderer(
     override fun onAccuracyChanged(sensor: android.hardware.Sensor, accuracy: Int) {}
   }
 
+  // ── Real-Time Heart Rate via MeasureClient ──
+  // MeasureClient provides ~1Hz HR updates while the screen is on.
+  // Same pattern as step sensor: register when visible, unregister when hidden.
+  private val measureClient: MeasureClient =
+    HealthServices.getClient(context).measureClient
+  private val hrHistoryStore = HrHistoryStore(context)
+
+  private val hrMeasureCallback = object : MeasureCallback {
+    override fun onAvailabilityChanged(
+      dataType: DeltaDataType<*, *>,
+      availability: Availability
+    ) {
+      Log.d("PixelFaceWF", "HR availability: $availability")
+    }
+
+    override fun onDataReceived(data: DataPointContainer) {
+      val hrPoints = data.getData(DataType.HEART_RATE_BPM)
+      if (hrPoints.isNotEmpty()) {
+        val latest = hrPoints.last().value.toInt()
+        if (latest in 30..220) {
+          val prefs = context.getSharedPreferences(HealthDataManager.PREFS_NAME, Context.MODE_PRIVATE)
+          prefs.edit()
+            .putInt(HealthDataManager.KEY_HEART_RATE, latest)
+            .putLong(HealthDataManager.KEY_LAST_UPDATE, System.currentTimeMillis())
+            .apply()
+          hrHistoryStore.append(latest)
+          HeartRateComplicationService.requestUpdate(context)
+          FaceComplicationService.requestUpdate(context)
+        }
+      }
+    }
+  }
+
   init {
     CoroutineScope(Dispatchers.Main).launch {
       watchState.isVisible.collect { visible: Boolean? ->
-        if (visible == true && stepSensor != null) {
-          // Reset baselines on screen-on so we re-sync with Health Services
-          sensorBaselineRaw = -1
-          healthServicesBaseline = -1
-          sensorManager.registerListener(stepListener, stepSensor, android.hardware.SensorManager.SENSOR_DELAY_NORMAL)
-        } else if (stepSensor != null) {
-          sensorManager.unregisterListener(stepListener)
+        if (visible == true) {
+          // ── Step sensor ──
+          if (stepSensor != null) {
+            sensorBaselineRaw = -1
+            healthServicesBaseline = -1
+            sensorManager.registerListener(stepListener, stepSensor, android.hardware.SensorManager.SENSOR_DELAY_NORMAL)
+          }
+          // ── Real-time HR ──
+          try {
+            measureClient.registerMeasureCallback(DataType.HEART_RATE_BPM, hrMeasureCallback)
+            Log.d("PixelFaceWF", "MeasureClient HR registered")
+          } catch (e: Exception) {
+            Log.w("PixelFaceWF", "MeasureClient HR registration failed: ${e.message}")
+          }
+        } else {
+          // ── Unregister both ──
+          if (stepSensor != null) {
+            sensorManager.unregisterListener(stepListener)
+          }
+          try {
+            measureClient.unregisterMeasureCallbackAsync(DataType.HEART_RATE_BPM, hrMeasureCallback)
+            Log.d("PixelFaceWF", "MeasureClient HR unregistered")
+          } catch (e: Exception) {
+            Log.w("PixelFaceWF", "MeasureClient HR unregister failed: ${e.message}")
+          }
         }
       }
     }
